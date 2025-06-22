@@ -24,7 +24,13 @@ router.post('/register', [
         return res.status(400).json({ errors: errors.array() });
     }
 
+    // Destructure required fields for User model
     const { name, email, password, role, phone } = req.body;
+
+    // Destructure optional fields that might be present in req.body for Caregiver
+    // Frontend sends locationAddress and locationCoordinates directly,
+    // so we need to pick them up this way and build the 'location' object.
+    const { bio, locationAddress, locationCoordinates, experienceYears, hourlyRate, services, specialRequirements, preferredServices } = req.body;
 
     try {
         let user = await User.findOne({ email });
@@ -49,17 +55,23 @@ router.post('/register', [
         if (role === 'caregiver') {
             const caregiver = new Caregiver({
                 user: user._id,
-                bio: req.body.bio || '',
-                experienceYears: req.body.experienceYears || 0,
-                hourlyRate: req.body.hourlyRate || 0,
-                services: req.body.services || []
+                bio: bio || '', // Use the destructured bio
+                experienceYears: experienceYears || 0,
+                hourlyRate: hourlyRate || 0,
+                services: services || [],
+                // Construct the location object here from the frontend's top-level fields
+                location: {
+                    address: locationAddress || '',
+                    // Ensure coordinates is an array, even if empty/placeholder
+                    coordinates: Array.isArray(locationCoordinates) ? locationCoordinates : [0, 0] 
+                }
             });
             await caregiver.save();
         } else if (role === 'care seeker') {
             const careSeeker = new CareSeeker({
                 user: user._id,
-                specialRequirements: req.body.specialRequirements || '',
-                preferredServices: req.body.preferredServices || []
+                specialRequirements: specialRequirements || '',
+                preferredServices: preferredServices || []
             });
             await careSeeker.save();
         }
@@ -82,6 +94,14 @@ router.post('/register', [
         );
     } catch (err) {
         console.error(err.message);
+        // Log the full error object in development for more detail
+        if (process.env.NODE_ENV === 'development') {
+            console.error(err);
+        }
+        // Send a more informative error message if it's a validation error
+        if (err.name === 'ValidationError') {
+            return res.status(400).json({ message: err.message });
+        }
         res.status(500).send('Server error');
     }
 });
@@ -157,4 +177,4 @@ router.get('/me', auth, async (req, res) => {
     }
 });
 
-module.exports = router; 
+module.exports = router;

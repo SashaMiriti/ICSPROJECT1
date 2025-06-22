@@ -23,6 +23,19 @@ const validationSchema = Yup.object({
   phone: Yup.string()
     .matches(/^[0-9]{10}$/, 'Phone number must be 10 digits')
     .required('Phone number is required'),
+  // New conditional validations for caregiver fields
+  bio: Yup.string().when('role', {
+    is: 'caregiver',
+    then: (schema) => schema.required('Bio is required for caregivers.'),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  locationAddress: Yup.string().when('role', {
+    is: 'caregiver',
+    then: (schema) => schema.required('Location address is required for caregivers.'),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  // For coordinates, we'll send a placeholder or derive from address later.
+  // For now, we'll ensure the object structure is sent.
 });
 
 export default function Register() {
@@ -30,7 +43,25 @@ export default function Register() {
   const { register } = useAuth();
 
   const handleSubmit = async (values, { setSubmitting }) => {
-    const { confirmPassword, ...userData } = values;
+    // Destructure out confirmPassword as it's not sent to the backend
+    const { confirmPassword, locationAddress, ...userData } = values;
+
+    // Conditionally add caregiver-specific data if the role is 'caregiver'
+    if (userData.role === 'caregiver') {
+      userData.location = {
+        address: locationAddress,
+        // For coordinates, we'll send a placeholder or actual derived coordinates.
+        // For simplicity, let's send a placeholder or an empty array for now.
+        // You would typically use a geolocation API here.
+        coordinates: [0, 0] // Placeholder: [longitude, latitude]
+      };
+      // Bio is already directly in userData via Formik values
+    } else {
+      // Ensure caregiver-specific fields are not sent if not a caregiver
+      delete userData.bio;
+      delete userData.location;
+    }
+
     const success = await register(userData);
     if (success) {
       if (userData.role === 'caregiver') {
@@ -38,7 +69,7 @@ export default function Register() {
       } else if (userData.role === 'care seeker') {
         navigate('/care-seeker/dashboard');
       } else {
-        navigate('/');
+        navigate('/'); // Fallback if role is unexpectedly not set
       }
     }
     setSubmitting(false);
@@ -71,12 +102,17 @@ export default function Register() {
               confirmPassword: '',
               role: '',
               phone: '',
+              // New initial values for caregiver fields
+              bio: '',
+              locationAddress: '',
+              // locationCoordinates: [0, 0], // Handled directly in handleSubmit for now
             }}
             validationSchema={validationSchema}
             onSubmit={handleSubmit}
           >
             {({ values, errors, touched, handleChange, handleBlur, isSubmitting }) => (
               <Form className="space-y-6">
+                {/* Full Name */}
                 <div>
                   <label htmlFor="name" className="form-label">
                     Full name
@@ -101,6 +137,7 @@ export default function Register() {
                   </div>
                 </div>
 
+                {/* Email Address */}
                 <div>
                   <label htmlFor="email" className="form-label">
                     Email address
@@ -125,6 +162,7 @@ export default function Register() {
                   </div>
                 </div>
 
+                {/* Phone Number */}
                 <div>
                   <label htmlFor="phone" className="form-label">
                     Phone number
@@ -149,6 +187,7 @@ export default function Register() {
                   </div>
                 </div>
 
+                {/* Role Selection */}
                 <div>
                   <label htmlFor="role" className="form-label">
                     I want to...
@@ -175,6 +214,61 @@ export default function Register() {
                   </div>
                 </div>
 
+                {/* Conditional Caregiver Fields */}
+                {values.role === 'caregiver' && (
+                  <>
+                    {/* Bio */}
+                    <div>
+                      <label htmlFor="bio" className="form-label">
+                        Bio (Tell us about yourself)
+                      </label>
+                      <div className="mt-1">
+                        <textarea
+                          id="bio"
+                          name="bio"
+                          value={values.bio}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          rows="3"
+                          className={`input-field ${
+                            touched.bio && errors.bio ? 'border-red-500' : ''
+                          }`}
+                        ></textarea>
+                        {touched.bio && errors.bio && (
+                          <p className="mt-2 text-sm text-red-600">{errors.bio}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Location Address */}
+                    <div>
+                      <label htmlFor="locationAddress" className="form-label">
+                        Location Address
+                      </label>
+                      <div className="mt-1">
+                        <input
+                          id="locationAddress"
+                          name="locationAddress"
+                          type="text"
+                          value={values.locationAddress}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          className={`input-field ${
+                            touched.locationAddress && errors.locationAddress ? 'border-red-500' : ''
+                          }`}
+                        />
+                        {touched.locationAddress && errors.locationAddress && (
+                          <p className="mt-2 text-sm text-red-600">{errors.locationAddress}</p>
+                        )}
+                      </div>
+                    </div>
+                    {/* Note: locationCoordinates are being hardcoded for now,
+                         but in a real app, you'd use a geolocation service
+                         to get them from the address or direct user input. */}
+                  </>
+                )}
+
+                {/* Password */}
                 <div>
                   <label htmlFor="password" className="form-label">
                     Password
@@ -199,6 +293,7 @@ export default function Register() {
                   </div>
                 </div>
 
+                {/* Confirm Password */}
                 <div>
                   <label htmlFor="confirmPassword" className="form-label">
                     Confirm password
@@ -227,6 +322,7 @@ export default function Register() {
                   </div>
                 </div>
 
+                {/* Submit Button */}
                 <div>
                   <button
                     type="submit"
@@ -250,4 +346,4 @@ export default function Register() {
       </div>
     </div>
   );
-} 
+}

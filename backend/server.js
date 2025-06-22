@@ -42,7 +42,7 @@ app.use(express.json()); // Parse JSON request bodies
 app.use(express.urlencoded({ extended: true }));
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/together_care')
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/TogetherCare')
     .then(() => console.log('Connected to MongoDB'))
     .catch(err => console.error('MongoDB connection error:', err));
 
@@ -132,6 +132,10 @@ app.delete('/api/items/:id', async (req, res) => {
         }
         res.status(500).json({ message: 'Server Error deleting item' });
     }
+});
+//Basic route for the homepage
+app.get('/', (req, res) => {
+    res.send('API is running...');
 });
 
 // Routes

@@ -16,7 +16,7 @@ const CaregiverSchema = new mongoose.Schema({
     },
     bio: {
         type: String,
-        required: true
+        required: true // Keeping bio required as you're collecting it
     },
     experienceYears: {
         type: Number,
@@ -57,11 +57,13 @@ const CaregiverSchema = new mongoose.Schema({
         },
         coordinates: {
             type: [Number],
-            required: true
+            // Changed to optional for initial registration
+            required: false // <--- CHANGE THIS!
         },
         address: {
             type: String,
-            required: true
+            // Changed to optional for initial registration
+            required: false // <--- CHANGE THIS!
         }
     }
 }, {
@@ -71,4 +73,4 @@ const CaregiverSchema = new mongoose.Schema({
 // Create a geospatial index for location-based queries
 CaregiverSchema.index({ location: '2dsphere' });
 
-module.exports = mongoose.model('Caregiver', CaregiverSchema); 
+module.exports = mongoose.model('Caregiver', CaregiverSchema);

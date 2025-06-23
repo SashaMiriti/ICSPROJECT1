@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import { useAuth } from '../../contexts/auth';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 
 const validationSchema = Yup.object({
   name: Yup.string()
@@ -38,29 +41,63 @@ const validationSchema = Yup.object({
   // For now, we'll ensure the object structure is sent.
 });
 
+// Fix marker icon issue with Leaflet in React
+const markerIcon = new L.Icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png',
+  shadowSize: [41, 41],
+});
+
+function LocationPicker({ value, onChange }) {
+  // value: [lng, lat]
+  const position = value && value.length === 2 ? [value[1], value[0]] : [51.505, -0.09]; // Default: London
+  function LocationMarker() {
+    useMapEvents({
+      click(e) {
+        onChange([e.latlng.lng, e.latlng.lat]);
+      },
+    });
+    return value && value.length === 2 ? (
+      <Marker position={position} icon={markerIcon} />
+    ) : null;
+  }
+  return (
+    <MapContainer center={position} zoom={13} style={{ height: 250, width: '100%' }}>
+      <TileLayer
+        attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      <LocationMarker />
+    </MapContainer>
+  );
+}
+
 export default function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();
 
   const handleSubmit = async (values, { setSubmitting }) => {
     // Destructure out confirmPassword as it's not sent to the backend
-    const { confirmPassword, locationAddress, ...userData } = values;
+    const { confirmPassword, ...userData } = values;
 
-    // Conditionally add caregiver-specific data if the role is 'caregiver'
     if (userData.role === 'caregiver') {
       userData.location = {
-        address: locationAddress,
-        // For coordinates, we'll send a placeholder or actual derived coordinates.
-        // For simplicity, let's send a placeholder or an empty array for now.
-        // You would typically use a geolocation API here.
-        coordinates: [0, 0] // Placeholder: [longitude, latitude]
+        address: userData.locationAddress,
+        coordinates: userData.locationCoordinates,
       };
       // Bio is already directly in userData via Formik values
-    } else {
-      // Ensure caregiver-specific fields are not sent if not a caregiver
+    } else if (userData.role === 'care seeker') {
+      // For care seekers, send locationAddress and locationCoordinates as top-level fields
+      // so the backend can use them to build the location object
+      // (do not delete them)
+      // Remove caregiver-only fields
       delete userData.bio;
-      delete userData.location;
     }
+    // Remove fields not needed by backend
+    delete userData.confirmPassword;
 
     const success = await register(userData);
     if (success) {
@@ -102,15 +139,14 @@ export default function Register() {
               confirmPassword: '',
               role: '',
               phone: '',
-              // New initial values for caregiver fields
               bio: '',
               locationAddress: '',
-              // locationCoordinates: [0, 0], // Handled directly in handleSubmit for now
+              locationCoordinates: [0, 0],
             }}
             validationSchema={validationSchema}
             onSubmit={handleSubmit}
           >
-            {({ values, errors, touched, handleChange, handleBlur, isSubmitting }) => (
+            {({ values, errors, touched, handleChange, handleBlur, setFieldValue, isSubmitting }) => (
               <Form className="space-y-6">
                 {/* Full Name */}
                 <div>
@@ -265,6 +301,41 @@ export default function Register() {
                     {/* Note: locationCoordinates are being hardcoded for now,
                          but in a real app, you'd use a geolocation service
                          to get them from the address or direct user input. */}
+                  </>
+                )}
+
+                {/* Care Seeker Location Fields */}
+                {values.role === 'care seeker' && (
+                  <>
+                    <div>
+                      <label htmlFor="locationAddress" className="form-label">
+                        Address
+                      </label>
+                      <div className="mt-1">
+                        <input
+                          id="locationAddress"
+                          name="locationAddress"
+                          type="text"
+                          value={values.locationAddress}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          className={`input-field ${touched.locationAddress && errors.locationAddress ? 'border-red-500' : ''}`}
+                        />
+                        {touched.locationAddress && errors.locationAddress && (
+                          <p className="mt-2 text-sm text-red-600">{errors.locationAddress}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="form-label">Select your location on the map</label>
+                      <LocationPicker
+                        value={values.locationCoordinates}
+                        onChange={(coords) => setFieldValue('locationCoordinates', coords)}
+                      />
+                      <p className="text-xs text-gray-500 mt-2">
+                        Click on the map to set your location. Coordinates: {values.locationCoordinates[1]}, {values.locationCoordinates[0]}
+                      </p>
+                    </div>
                   </>
                 )}
 

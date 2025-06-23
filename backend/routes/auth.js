@@ -71,7 +71,11 @@ router.post('/register', [
             const careSeeker = new CareSeeker({
                 user: user._id,
                 specialRequirements: specialRequirements || '',
-                preferredServices: preferredServices || []
+                preferredServices: preferredServices || [],
+                location: {
+                    address: locationAddress || '',
+                    coordinates: Array.isArray(locationCoordinates) ? locationCoordinates : [0, 0]
+                }
             });
             await careSeeker.save();
         }

@@ -1,37 +1,45 @@
-import React, { useEffect } from 'react';
+import React, { useState } from 'react'; // Ensure useState is imported
 import { Link, useNavigate } from 'react-router-dom';
-import { Formik, Form } from 'formik';
+import { Formik, Form, Field, ErrorMessage } from 'formik'; // Assuming Formik is used here too
 import * as Yup from 'yup';
-import { useAuth } from '../../contexts/auth';
+import { useAuth } from '../../contexts/AuthContext'; // Correct path to AuthContext
+import toast from 'react-hot-toast'; // Assuming you use toast
 
 const validationSchema = Yup.object({
-  email: Yup.string()
-    .email('Invalid email address')
-    .required('Email is required'),
-  password: Yup.string()
-    .min(6, 'Password must be at least 6 characters')
-    .required('Password is required'),
+  email: Yup.string().email('Invalid email address').required('Email is required'),
+  password: Yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
 });
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, user } = useAuth();
-
-  useEffect(() => {
-    if (user) {
-      if (user.role === 'caregiver') {
-        navigate('/caregiver/dashboard');
-      } else if (user.role === 'care seeker') {
-        navigate('/care-seeker/dashboard');
-      } else {
-        navigate('/');
-      }
-    }
-  }, [user, navigate]);
+  // Ensure 'login' is destructured from useAuth().
+  // If you also need 'user' directly in this component, you would destructure it too:
+  // const { login, user } = useAuth();
+  const { login } = useAuth(); // You only need 'login' function for submitting the form
 
   const handleSubmit = async (values, { setSubmitting }) => {
-    await login(values.email, values.password);
-    setSubmitting(false);
+    try {
+      const result = await login(values.email, values.password); // AuthContext.login now returns { success, role }
+
+      if (result.success) {
+        // Navigate based on role received from AuthContext
+        if (result.role === 'careSeeker') {
+          navigate('/care-seeker/profile'); // Or '/care-seeker/dashboard'
+        } else if (result.role === 'caregiver') {
+          navigate('/caregiver/profile'); // Or '/caregiver/dashboard'
+        } else {
+          navigate('/'); // Fallback
+        }
+      } else {
+        // Error message handled by toast in AuthContext, but you can add more specific handling here if needed
+      }
+    } catch (error) {
+      // This catch block would handle errors re-thrown by AuthContext.login
+      console.error("Login component caught error:", error);
+      // toast.error(error.message || 'An unexpected error occurred during login.'); // Toast already handled in AuthContext
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -58,29 +66,24 @@ export default function Login() {
             validationSchema={validationSchema}
             onSubmit={handleSubmit}
           >
-            {({ values, errors, touched, handleChange, handleBlur, isSubmitting }) => (
+            {({ errors, touched, isSubmitting }) => (
               <Form className="space-y-6">
                 <div>
                   <label htmlFor="email" className="form-label">
                     Email address
                   </label>
                   <div className="mt-1">
-                    <input
+                    <Field
                       id="email"
                       name="email"
                       type="email"
                       autoComplete="email"
                       required
-                      value={values.email}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
                       className={`input-field ${
                         touched.email && errors.email ? 'border-red-500' : ''
                       }`}
                     />
-                    {touched.email && errors.email && (
-                      <p className="mt-2 text-sm text-red-600">{errors.email}</p>
-                    )}
+                    <ErrorMessage name="email" component="p" className="mt-2 text-sm text-red-600" />
                   </div>
                 </div>
 
@@ -89,46 +92,33 @@ export default function Login() {
                     Password
                   </label>
                   <div className="mt-1">
-                    <input
+                    <Field
                       id="password"
                       name="password"
                       type="password"
                       autoComplete="current-password"
                       required
-                      value={values.password}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
                       className={`input-field ${
                         touched.password && errors.password ? 'border-red-500' : ''
                       }`}
                     />
-                    {touched.password && errors.password && (
-                      <p className="mt-2 text-sm text-red-600">{errors.password}</p>
-                    )}
+                    <ErrorMessage name="password" component="p" className="mt-2 text-sm text-red-600" />
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <input
-                      id="remember-me"
-                      name="remember-me"
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                    />
+                    {/* Remember Me Checkbox (if applicable) */}
+                    {/* <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" />
                     <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
                       Remember me
-                    </label>
+                    </label> */}
                   </div>
 
                   <div className="text-sm">
-                    <button
-                      type="button"
-                      className="font-medium text-primary-600 hover:text-primary-500"
-                      onClick={() => alert('Password reset coming soon!')}
-                    >
+                    <Link to="/forgot-password" className="font-medium text-primary-600 hover:text-primary-500">
                       Forgot your password?
-                    </button>
+                    </Link>
                   </div>
                 </div>
 
@@ -155,4 +145,4 @@ export default function Login() {
       </div>
     </div>
   );
-} 
+}

@@ -8,69 +8,47 @@ const CaregiverSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
-    },
-    certifications: {
-        type: [String],
-        default: []
-    },
-    bio: {
-        type: String,
-        required: true // Keeping bio required as you're collecting it
-    },
-    experienceYears: {
-        type: Number,
         required: true,
-        min: 0
+        unique: true
     },
-    isVerified: {
-        type: Boolean,
-        default: false
-    },
-    hourlyRate: {
-        type: Number,
-        required: true,
-        min: 0
-    },
-    services: {
-        type: [String],
-        required: true,
-        enum: ['elderly care', 'child care', 'disability care', 'medical care', 'companionship']
-    },
-    availability: [{
-        dayOfWeek: {
+    fullName: { type: String },
+    contactNumber: { type: String },
+    qualifications: [{ type: String }],
+    experienceYears: { type: Number },
+    specializations: [{ type: String }],
+    servicesOffered: [{ type: String }],
+    availability: {
+        days: [{
             type: String,
             enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-        },
-        startTime: String,
-        endTime: String,
-        isRecurring: {
-            type: Boolean,
-            default: true
-        }
-    }],
+        }],
+        timeSlots: [{
+            startTime: { type: String },
+            endTime: { type: String }
+        }]
+    },
+    // --- CRITICAL FIX: Define location as GeoJSON Point type ---
     location: {
         type: {
-            type: String,
+            type: String, // Must be 'Point' for GeoJSON Point
             enum: ['Point'],
-            default: 'Point'
+            required: true
         },
         coordinates: {
-            type: [Number],
-            // Changed to optional for initial registration
-            required: false // <--- CHANGE THIS!
+            type: [Number], // Array of [longitude, latitude]
+            required: true,
+            index: '2dsphere' // This creates the geospatial index in MongoDB
         },
-        address: {
+        address: { // You can store the address string as a custom property within the GeoJSON object
             type: String,
-            // Changed to optional for initial registration
-            required: false // <--- CHANGE THIS!
+            required: true // Making it required based on your validation
         }
-    }
-}, {
-    timestamps: true
-});
-
-// Create a geospatial index for location-based queries
-CaregiverSchema.index({ location: '2dsphere' });
+    },
+    // --- END CRITICAL FIX ---
+    hourlyRate: { type: Number },
+    languagesSpoken: [{ type: String }],
+    gender: { type: String, enum: ['Male', 'Female', 'Other', 'Prefer not to say'] },
+    bio: { type: String },
+}, { timestamps: true });
 
 module.exports = mongoose.model('Caregiver', CaregiverSchema);

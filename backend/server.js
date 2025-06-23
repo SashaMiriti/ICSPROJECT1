@@ -133,7 +133,7 @@ app.delete('/api/items/:id', async (req, res) => {
         res.status(500).json({ message: 'Server Error deleting item' });
     }
 });
-//Basic route for the homepage
+// Basic route for the homepage
 app.get('/', (req, res) => {
     res.send('API is running...');
 });

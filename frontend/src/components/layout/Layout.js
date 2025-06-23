@@ -2,38 +2,51 @@ import React, { Fragment } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { Disclosure, Menu, Transition } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
-import { useAuth } from '../../contexts/auth';
+import { useAuth } from '../../contexts/AuthContext'; // Corrected path if needed, ensure it's from AuthContext
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ');
 }
 
 export default function Layout() {
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
   const navigate = useNavigate();
+
+  // --- DEBUG CONSOLE LOGS ---
+  console.log('Layout - User object:', user);
+  console.log('Layout - Loading state:', loading);
+  // --- END DEBUG CONSOLE LOGS ---
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/login');
   };
 
-  const navigation = [
-    { name: 'Home', href: '/', current: false },
-    { name: 'About', href: '/about', current: false },
-    ...(user
-      ? user.role === 'care seeker'
-        ? [
-            { name: 'Find Caregivers', href: '/care-seeker/search', current: false },
-            { name: 'My Bookings', href: '/care-seeker/bookings', current: false },
-          ]
-        : [
-            { name: 'My Schedule', href: '/caregiver/schedule', current: false },
-            { name: 'My Bookings', href: '/caregiver/bookings', current: false },
-            { name: 'My Reviews', href: '/caregiver/reviews', current: false },
-          ]
-      : []),
-  ];
+  // Only define navigation if user data is loaded and not null
+  const navigation = !loading && user ? (
+    user.role === 'careSeeker'
+      ? [
+          { name: 'Dashboard', href: '/care-seeker/dashboard', current: false },
+          { name: 'Find Caregivers', href: '/care-seeker/search', current: false },
+          { name: 'My Bookings', href: '/care-seeker/bookings', current: false },
+        ]
+      : user.role === 'caregiver'
+      ? [
+          { name: 'Dashboard', href: '/caregiver/dashboard', current: false },
+          { name: 'My Schedule', href: '/caregiver/schedule', current: false },
+          { name: 'My Bookings', href: '/caregiver/bookings', current: false },
+          { name: 'My Reviews', href: '/caregiver/reviews', current: false },
+        ]
+      : []
+  ) : [];
 
+  // If loading, render a loading spinner or null
+  if (loading) {
+    console.log('Layout is in loading state, rendering loading screen...');
+    return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading application...</div>;
+  }
+
+  // --- Rest of your rendering logic ---
   return (
     <div className="min-h-screen bg-gray-100">
       <Disclosure as="nav" className="bg-white shadow">
@@ -71,7 +84,7 @@ export default function Layout() {
                         <span className="sr-only">Open user menu</span>
                         <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
                           <span className="text-primary-800 font-medium">
-                            {user.name[0].toUpperCase()}
+                            {(user.username && user.username[0] ? user.username[0].toUpperCase() : 'U')}
                           </span>
                         </div>
                       </Menu.Button>
@@ -88,7 +101,8 @@ export default function Layout() {
                           <Menu.Item>
                             {({ active }) => (
                               <Link
-                                to={`/${user.role.replace(' ', '-')}/dashboard`}
+                                // <--- FIX HERE: Ensure user.role is safely accessed
+                                to={user.role ? `/${user.role}/dashboard` : '/'}
                                 className={classNames(
                                   active ? 'bg-gray-100' : '',
                                   'block px-4 py-2 text-sm text-gray-700'
@@ -101,7 +115,8 @@ export default function Layout() {
                           <Menu.Item>
                             {({ active }) => (
                               <Link
-                                to={`/${user.role.replace(' ', '-')}/profile`}
+                                // <--- FIX HERE: Ensure user.role is safely accessed
+                                to={user.role ? `/${user.role}/profile` : '/'}
                                 className={classNames(
                                   active ? 'bg-gray-100' : '',
                                   'block px-4 py-2 text-sm text-gray-700'
@@ -175,27 +190,27 @@ export default function Layout() {
                     <div className="flex-shrink-0">
                       <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
                         <span className="text-primary-800 font-medium">
-                          {user.name[0].toUpperCase()}
+                          {(user.username && user.username[0] ? user.username[0].toUpperCase() : 'U')}
                         </span>
                       </div>
                     </div>
                     <div className="ml-3">
-                      <div className="text-base font-medium text-gray-800">{user.name}</div>
+                      <div className="text-base font-medium text-gray-800">{user.username}</div>
                       <div className="text-sm font-medium text-gray-500">{user.email}</div>
                     </div>
                   </div>
                   <div className="mt-3 space-y-1">
                     <Disclosure.Button
                       as={Link}
-                      to={`/${user.role.replace(' ', '-')}/dashboard`}
+                      to={user.role ? `/${user.role}/dashboard` : '/'} // <--- FIX HERE: Ensure user.role is safely accessed
                       className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
                     >
                       Dashboard
                     </Disclosure.Button>
                     <Disclosure.Button
                       as={Link}
-                      to={`/${user.role.replace(' ', '-')}/profile`}
-                      className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                      to={user.role ? `/${user.role}/profile` : '/'} // <--- FIX HERE: Ensure user.role is safely accessed
+                      className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:hover:text-gray-800"
                     >
                       Profile
                     </Disclosure.Button>
@@ -231,7 +246,7 @@ export default function Layout() {
 
       <main className="py-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <Outlet />
+          <Outlet /> {/* This is where your nested route components will render */}
         </div>
       </main>
 
@@ -264,4 +279,4 @@ export default function Layout() {
       </footer>
     </div>
   );
-} 
+}

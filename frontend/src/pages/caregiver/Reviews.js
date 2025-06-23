@@ -3,30 +3,83 @@ import React from 'react';
 const mockReviews = [
   {
     id: 1,
-    client: 'Sarah Johnson',
+    client: 'Amina Ali',
     rating: 5,
-    date: '2024-03-15',
+    date: '2025-06-20', // Updated date
     comment:
-      'Jane was absolutely wonderful with my mother. She was patient, caring, and professional. Highly recommend!',
+      'Mercy was a true blessing for my elderly mother. So patient, kind, and always on time. Highly recommend her for anyone needing reliable care in Nairobi!',
     service: 'Elderly Care',
+    careSeekerImage: 'https://randomuser.me/api/portraits/women/68.jpg', // Placeholder image
   },
   {
     id: 2,
-    client: 'Michael Brown',
+    client: 'David Mwaura',
     rating: 4,
-    date: '2024-03-10',
+    date: '2025-06-15', // Updated date
     comment:
-      'Very good with special needs care. Shows great understanding and patience.',
+      'The caregiver provided was very understanding and gentle with my child who has special needs. Their approach was very helpful and professional.',
     service: 'Special Needs Care',
+    careSeekerImage: 'https://randomuser.me/api/portraits/men/33.jpg', // Placeholder image
   },
   {
     id: 3,
-    client: 'Emily Davis',
+    client: 'Grace Wanjiku',
     rating: 5,
-    date: '2024-03-05',
+    date: '2025-06-10', // Updated date
     comment:
-      'Excellent service! Very reliable and great with kids. Will definitely book again.',
+      'Fantastic experience with the childcare service! Jane kept the kids engaged and safe. Truly reliable, will definitely use "Together Care" again.',
     service: 'Child Care',
+    careSeekerImage: 'https://randomuser.me/api/portraits/women/45.jpg', // Placeholder image
+  },
+  {
+    id: 4,
+    client: 'Robert Kipchoge',
+    rating: 4, // Adjusted rating
+    date: '2025-06-05', // Updated date
+    comment:
+      'Impressed by the professionalism. My recovery process was made much smoother thanks to their attentive post-operative care.',
+    service: 'Post-operative Care',
+    careSeekerImage: 'https://randomuser.me/api/portraits/men/88.jpg', // Placeholder image
+  },
+  {
+    id: 5,
+    client: 'Fatuma Hassan',
+    rating: 3, // Adjusted rating
+    date: '2025-05-30', // Updated date
+    comment:
+      'Good companion care for my grandmother. She enjoys the conversations and activities. There was a minor scheduling mix-up but it was quickly resolved.',
+    service: 'Companion Care',
+    careSeekerImage: 'https://randomuser.me/api/portraits/women/22.jpg', // Placeholder image
+  },
+  {
+    id: 6,
+    client: 'James Omondi',
+    rating: 4, // Adjusted rating
+    date: '2025-05-25', // Updated date
+    comment:
+      'The physiotherapist was very skilled and helped me regain mobility. Very happy with the sessions.',
+    service: 'Physiotherapy Support',
+    careSeekerImage: 'https://randomuser.me/api/portraits/men/12.jpg', // Placeholder image
+  },
+  {
+    id: 7,
+    client: 'Njeri Kamau',
+    rating: 5,
+    date: '2025-06-22', // New review, recent date
+    comment:
+      'Excellent home nursing care. The nurse was very gentle and explained everything clearly. Made me feel very comfortable.',
+    service: 'Home Nursing',
+    careSeekerImage: 'https://randomuser.me/api/portraits/women/70.jpg', // New placeholder
+  },
+  {
+    id: 8,
+    client: 'Samuel Kimani',
+    rating: 5,
+    date: '2025-06-19', // New review, recent date
+    comment:
+      'The caregiver for my son with autism was exceptional. Very patient, resourceful, and understanding. Truly a blessing!',
+    service: 'Autism Support',
+    careSeekerImage: 'https://randomuser.me/api/portraits/men/50.jpg', // New placeholder
   },
 ];
 
@@ -64,7 +117,7 @@ export default function Reviews() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="sm:flex sm:items-center">
           <div className="sm:flex-auto">
-            <h1 className="text-2xl font-semibold text-gray-900">My Reviews</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">Customer Reviews</h1>
             <div className="mt-2 flex items-center">
               <StarRating rating={Math.round(averageRating)} />
               <p className="ml-2 text-sm text-gray-700">
@@ -78,23 +131,30 @@ export default function Reviews() {
           <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
             <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
               <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                <div className="min-w-full divide-y divide-gray-300">
+                <div className="divide-y divide-gray-300">
                   {mockReviews.map((review) => (
                     <div key={review.id} className="bg-white px-4 py-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900">
-                            {review.client}
-                          </h3>
-                          <p className="text-sm text-gray-500">{review.service}</p>
+                      <div className="flex items-start justify-between"> {/* Changed items-center to items-start for image alignment */}
+                        <div className="flex items-center"> {/* New div for image and text content */}
+                            <img
+                                src={review.careSeekerImage}
+                                alt={review.client}
+                                className="h-12 w-12 rounded-full mr-4 object-cover" // Styling for image
+                            />
+                            <div>
+                                <h3 className="text-md font-semibold text-gray-900">
+                                    {review.client}
+                                </h3>
+                                <p className="text-sm text-gray-500">{review.service}</p>
+                            </div>
                         </div>
-                        <p className="text-sm text-gray-500">{review.date}</p>
+                        <p className="text-sm text-gray-500 text-right">{review.date}</p> {/* Moved date to the right */}
                       </div>
                       <div className="mt-2">
                         <StarRating rating={review.rating} />
                       </div>
-                      <div className="mt-4 space-y-6 text-sm text-gray-600">
-                        <p>{review.comment}</p>
+                      <div className="mt-4 text-sm text-gray-600">
+                        <p className="leading-relaxed">{review.comment}</p>
                       </div>
                     </div>
                   ))}
@@ -106,4 +166,4 @@ export default function Reviews() {
       </div>
     </div>
   );
-} 
+}

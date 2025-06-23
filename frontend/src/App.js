@@ -121,11 +121,13 @@ function App() {
             <Route
               path="caregiver/reviews"
               element={
-                <PrivateRoute>
+               
                   <CaregiverReviews />
-                </PrivateRoute>
+               
               }
+              
             />
+        
           </Route>
         </Routes>
       </Router>

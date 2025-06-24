@@ -1,170 +1,142 @@
-require('dotenv').config(); // Load environment variables from .env file
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const bcrypt = require('bcryptjs'); // For password hashing
-const jwt = require('jsonwebtoken');   // For creating and verifying JSON Web Tokens
+const jwt = require('jsonwebtoken');
 const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 
-// Import the User model (now with 'name', 'phone', 'role')
-const User = require('./models/User'); 
-// Import the Item model (now from its own file)
+// Models
+const User = require('./models/User');
 const Item = require('./models/Item');
 
-// Import routes (we'll create these next)
+// Routes
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const caregiverRoutes = require('./routes/caregivers');
 const careSeekerRoutes = require('./routes/careSeekers');
 const bookingRoutes = require('./routes/bookings');
 const reviewRoutes = require('./routes/reviews');
+const careNeedsRoutes = require('./routes/careNeedsRoutes');
 
 const app = express();
 const server = http.createServer(app);
+
+// Socket.IO setup
 const io = socketIo(server, {
-    cors: {
-        origin: process.env.FRONTEND_URL || "http://localhost:3000",
-        methods: ["GET", "POST"]
-    }
+  cors: {
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    methods: ["GET", "POST"]
+  }
 });
 
-const PORT = process.env.PORT || 5000; // Use port 5000 for backend
+// Constants
+const PORT = process.env.PORT || 5000;
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkeythatshouldbeprotected';
 
-// Define a JWT secret key. BEST PRACTICE: Store this securely in your .env file!
-// For development, we'll keep a fallback here.
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkeythatshouldbeprotected'; 
+// ✅ Middleware
+app.use(cors());
+app.use(express.json()); // Parses JSON body
+app.use(express.urlencoded({ extended: true })); // Parses URL-encoded body
 
-// Middleware
-app.use(cors()); // Enable CORS for all origins (for development)
-app.use(express.json()); // Parse JSON request bodies
-app.use(express.urlencoded({ extended: true }));
-
-// Connect to MongoDB
+// ✅ MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/TogetherCare')
-    .then(() => console.log('Connected to MongoDB'))
-    .catch(err => console.error('MongoDB connection error:', err));
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
 
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-    console.log('New client connected');
+// ✅ Socket.IO Events
+io.on('connection', socket => {
+  console.log('🔌 New client connected');
 
-    socket.on('join', (userId) => {
-        socket.join(userId);
-    });
+  socket.on('join', userId => socket.join(userId));
+  socket.on('bookingUpdate', data => io.to(data.userId).emit('bookingUpdated', data));
 
-    socket.on('bookingUpdate', (data) => {
-        io.to(data.userId).emit('bookingUpdated', data);
-    });
-
-    socket.on('disconnect', () => {
-        console.log('Client disconnected');
-    });
+  socket.on('disconnect', () => {
+    console.log('🔌 Client disconnected');
+  });
 });
 
-// --- Authentication Middleware (for protecting routes) ---
+// ✅ Auth Middleware (for protected routes)
 function auth(req, res, next) {
-    const token = req.header('x-auth-token'); // Get token from header
+  const token = req.header('x-auth-token');
+  if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
 
-    // Check for token
-    if (!token) {
-        return res.status(401).json({ message: 'No token, authorization denied' });
-    }
-
-    try {
-        // Verify token
-        const decoded = jwt.verify(token, JWT_SECRET);
-        // Add user from payload
-        req.user = decoded.user;
-        next(); // Proceed to the next middleware/route handler
-    } catch (e) {
-        res.status(401).json({ message: 'Token is not valid' });
-    }
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (e) {
+    res.status(401).json({ message: 'Token is not valid' });
+  }
 }
 
-// --- API Routes for Items (unchanged functionality, just importing model) ---
-// GET all items
+// ✅ Sample API Routes (You can remove if not needed)
 app.get('/api/items', async (req, res) => {
-    try {
-        const items = await Item.find();
-        res.json(items);
-    } catch (err) {
-        console.error(err.message); // Log the actual error
-        res.status(500).json({ message: 'Server Error fetching items' });
-    }
+  try {
+    const items = await Item.find();
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error fetching items' });
+  }
 });
 
-// POST a new item (now potentially protected, we'll add 'auth' middleware later if needed)
 app.post('/api/items', async (req, res) => {
-    const { name, description } = req.body; // Destructure directly
+  const { name, description } = req.body;
+  if (!name) return res.status(400).json({ message: 'Item name required' });
 
-    // Basic validation
-    if (!name) {
-        return res.status(400).json({ message: 'Please enter a name for the item' });
-    }
-
+  try {
     const newItem = new Item({ name, description });
-
-    try {
-        const savedItem = await newItem.save();
-        res.status(201).json(savedItem);
-    } catch (err) {
-        console.error(err.message); // Log the actual error
-        res.status(500).json({ message: 'Server Error adding item' });
-    }
+    const savedItem = await newItem.save();
+    res.status(201).json(savedItem);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error adding item' });
+  }
 });
 
-// DELETE an item (now potentially protected)
 app.delete('/api/items/:id', async (req, res) => {
-    try {
-        const item = await Item.findById(req.params.id);
-        if (!item) {
-            return res.status(404).json({ message: 'Item not found' });
-        }
+  try {
+    const item = await Item.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: 'Item not found' });
 
-        await Item.deleteOne({ _id: req.params.id }); // Using deleteOne for Mongoose 6+
-        res.json({ message: 'Item deleted successfully' });
-    } catch (err) {
-        console.error(err.message); // Log the actual error
-        if (err.kind === 'ObjectId') {
-            return res.status(400).json({ message: 'Invalid Item ID format' });
-        }
-        res.status(500).json({ message: 'Server Error deleting item' });
-    }
-});
-//Basic route for the homepage
-app.get('/', (req, res) => {
-    res.send('API is running...');
+    await item.deleteOne();
+    res.json({ message: 'Item deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error deleting item' });
+  }
 });
 
-// Routes
-app.use('/api/auth', authRoutes);
+// ✅ Routes Setup
+app.use('/api/auth', authRoutes); // Login, Register, /me
 app.use('/api/users', userRoutes);
 app.use('/api/caregivers', caregiverRoutes);
 app.use('/api/care-seekers', careSeekerRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api', careNeedsRoutes);
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(err.status || 500).json({
-        message: err.message || 'Internal Server Error',
-        error: process.env.NODE_ENV === 'development' ? err : {}
-    });
+// ✅ Root route
+app.get('/', (req, res) => {
+  res.send('✅ API is running...');
 });
 
-// Serve static files in production
+// ✅ Error Handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(err.status || 500).json({
+    message: err.message || 'Internal Server Error'
+  });
+});
+
+// ✅ Static Files in Production
 if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, '../frontend/build')));
-    app.get('*', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
-    });
+  app.use(express.static(path.join(__dirname, '../frontend/build')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
+  });
 }
 
-// Start the server
+// ✅ Start the server
 server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    console.log('Backend ready to handle requests for items and authentication.');
+  console.log(`🚀 Server running on port ${PORT}`);
 });

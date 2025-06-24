@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 
 const mockCaregivers = [
   {
@@ -12,6 +11,8 @@ const mockCaregivers = [
     hourlyRate: 25,
     location: 'San Francisco, CA',
     imageUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330',
+    bio: 'Experienced elderly caregiver.',
+    available: true,
   },
   {
     id: 2,
@@ -23,10 +24,12 @@ const mockCaregivers = [
     hourlyRate: 30,
     location: 'San Francisco, CA',
     imageUrl: 'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5',
+    bio: 'Special needs care specialist.',
+    available: false,
   },
 ];
 
-export default function SearchCaregivers() {
+export default function SearchCaregivers({ onViewProfile, onBook }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     service: '',
@@ -89,64 +92,27 @@ export default function SearchCaregivers() {
           </div>
         </div>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          {mockCaregivers.map((caregiver) => (
-            <div
-              key={caregiver.id}
-              className="col-span-1 divide-y divide-gray-200 rounded-lg bg-white shadow"
-            >
-              <div className="flex w-full items-center justify-between space-x-6 p-6">
-                <div className="flex-1 truncate">
-                  <div className="flex items-center space-x-3">
-                    <h3 className="truncate text-sm font-medium text-gray-900">
-                      {caregiver.name}
-                    </h3>
-                    <span className="inline-flex flex-shrink-0 items-center rounded-full bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                      {caregiver.rating} ★ ({caregiver.reviews})
-                    </span>
-                  </div>
-                  <p className="mt-1 truncate text-sm text-gray-500">
-                    {caregiver.location}
-                  </p>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Experience: {caregiver.experience}
-                  </p>
-                  <div className="mt-2">
-                    {caregiver.services.map((service) => (
-                      <span
-                        key={service}
-                        className="inline-flex items-center rounded-full bg-primary-50 px-2 py-1 text-xs font-medium text-primary-700 ring-1 ring-inset ring-primary-600/20 mr-2"
-                      >
-                        {service}
-                      </span>
-                    ))}
-                  </div>
+        <div className="max-w-4xl mx-auto mt-8" aria-label="Caregiver Search Results">
+          <h2 className="text-2xl font-bold mb-6 text-gray-900" tabIndex={0}>Available Caregivers</h2>
+          <div className="grid gap-8 md:grid-cols-2">
+            {mockCaregivers.map((c) => (
+              <div key={c.id} className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center" aria-label={`Caregiver ${c.name}`} tabIndex={0}>
+                <div className="w-24 h-24 bg-gray-200 rounded-full mb-4 flex items-center justify-center text-3xl text-gray-600" aria-hidden="true">
+                  {c.imageUrl ? <img src={c.imageUrl} alt={c.name} className="rounded-full w-full h-full object-cover" /> : c.name[0]}
                 </div>
-                <img
-                  className="h-20 w-20 flex-shrink-0 rounded-full bg-gray-300"
-                  src={caregiver.imageUrl}
-                  alt=""
-                />
-              </div>
-              <div>
-                <div className="-mt-px flex divide-x divide-gray-200">
-                  <div className="flex w-0 flex-1">
-                    <div className="relative -mr-px inline-flex w-0 flex-1 items-center justify-center gap-x-3 rounded-bl-lg border border-transparent py-4 text-sm font-semibold text-gray-900">
-                      ${caregiver.hourlyRate}/hour
-                    </div>
-                  </div>
-                  <div className="-ml-px flex w-0 flex-1">
-                    <Link
-                      to={`/care-seeker/caregiver/${caregiver.id}`}
-                      className="relative inline-flex w-0 flex-1 items-center justify-center gap-x-3 rounded-br-lg border border-transparent py-4 text-sm font-semibold text-primary-600 hover:text-primary-500"
-                    >
-                      View Profile
-                    </Link>
-                  </div>
+                <div className="text-xl font-bold text-gray-900 mb-2">{c.name}</div>
+                <div className="text-lg text-gray-700 mb-1">Experience: {c.experience}</div>
+                <div className="text-lg text-gray-700 mb-1">Rating: {c.rating} / 5</div>
+                <div className="text-gray-600 mb-4 text-center">{c.bio}</div>
+                <div className="flex gap-4 w-full">
+                  <button onClick={() => onViewProfile && onViewProfile(c.id)} className="flex-1 bg-blue-700 text-white text-lg font-bold py-3 rounded hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-400" aria-label={`View profile of ${c.name}`}>View Profile</button>
+                  <button onClick={() => onBook && onBook(c.id)} className="flex-1 bg-green-700 text-white text-lg font-bold py-3 rounded hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-400" aria-label={`Book ${c.name}`} disabled={!c.available} aria-disabled={!c.available}>
+                    {c.available ? 'Book Now' : 'Unavailable'}
+                  </button>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/layout/Layout';
+<<<<<<< HEAD
 
 // Public Pages
 import LandingPage from './pages/LandingPage';
@@ -13,6 +14,15 @@ import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import CaregiverConfirmation from './pages/auth/CaregiverConfirmation';
+=======
+import PrivateRoute from './components/auth/PrivateRoute';
+
+// Public Pages
+import Home from './pages/Home';
+import About from './pages/About';
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+>>>>>>> 88c45fe332bfa7c7ce8907e33e16e2ac61c1473d
 
 // Care Seeker Pages
 import CareSeekerDashboard from './pages/care-seeker/Dashboard';
@@ -21,6 +31,9 @@ import SearchCaregivers from './pages/care-seeker/SearchCaregivers';
 import CaregiverProfile from './pages/care-seeker/CaregiverProfile';
 import BookingForm from './pages/care-seeker/BookingForm';
 import CareSeekerBookings from './pages/care-seeker/Bookings';
+import NeedsForm from './pages/care-seeker/NeedsForm';
+import BookingDetails from './pages/care-seeker/BookingDetails';
+import Feedback from './pages/care-seeker/Feedback';
 
 // Caregiver Pages
 import CaregiverDashboard from './pages/caregiver/Dashboard';
@@ -40,6 +53,13 @@ import CaregiverDetail from './pages/admin/CaregiverDetail';
 // Protected Route Wrapper
 import ProtectedRoute from './components/layout/ProtectedRoute';
 
+// 404 Page
+const NotFound = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <h1 className="text-3xl font-bold text-gray-700">404 - Page Not Found</h1>
+  </div>
+);
+
 function App() {
   return (
     <AuthProvider>
@@ -54,6 +74,7 @@ function App() {
             <Route path="forgot-password" element={<ForgotPassword />} />
             <Route path="reset-password/:resettoken" element={<ResetPassword />} />
 
+<<<<<<< HEAD
             {/* Care Seeker Protected Routes */}
             <Route path="care-seeker/dashboard" element={<ProtectedRoute allowedRoles={['careSeeker']}><CareSeekerDashboard /></ProtectedRoute>} />
             <Route path="care-seeker/profile" element={<ProtectedRoute allowedRoles={['careSeeker']}><CareSeekerProfilePage /></ProtectedRoute>} />
@@ -76,6 +97,28 @@ function App() {
             <Route path="admin/pending-caregivers" element={<ProtectedRoute allowedRoles={['admin']}><PendingCaregivers /></ProtectedRoute>} />
             <Route path="/admin/caregiver/:id" element={<CaregiverDetail />} />
 
+=======
+            {/* Care Seeker Routes */}
+            <Route path="care-seeker/dashboard" element={<PrivateRoute><CareSeekerDashboard /></PrivateRoute>} />
+            <Route path="care-seeker/profile" element={<PrivateRoute><CareSeekerProfile /></PrivateRoute>} />
+            <Route path="care-seeker/search" element={<PrivateRoute><SearchCaregivers /></PrivateRoute>} />
+            <Route path="care-seeker/caregiver/:id" element={<PrivateRoute><CaregiverProfile /></PrivateRoute>} />
+            <Route path="care-seeker/booking/:id" element={<PrivateRoute><BookingForm /></PrivateRoute>} />
+            <Route path="care-seeker/bookings" element={<PrivateRoute><CareSeekerBookings /></PrivateRoute>} />
+            <Route path="care-seeker/needs" element={<PrivateRoute><NeedsForm /></PrivateRoute>} />
+            <Route path="care-seeker/booking-details/:id" element={<PrivateRoute><BookingDetails /></PrivateRoute>} />
+            <Route path="care-seeker/feedback" element={<PrivateRoute><Feedback /></PrivateRoute>} />
+
+            {/* Caregiver Routes */}
+            <Route path="caregiver/dashboard" element={<PrivateRoute><CaregiverDashboard /></PrivateRoute>} />
+            <Route path="caregiver/profile" element={<PrivateRoute><CaregiverProfileEdit /></PrivateRoute>} />
+            <Route path="caregiver/schedule" element={<PrivateRoute><CaregiverSchedule /></PrivateRoute>} />
+            <Route path="caregiver/bookings" element={<PrivateRoute><CaregiverBookings /></PrivateRoute>} />
+            <Route path="caregiver/reviews" element={<PrivateRoute><CaregiverReviews /></PrivateRoute>} />
+
+            {/* Fallback */}
+            <Route path="*" element={<NotFound />} />
+>>>>>>> 88c45fe332bfa7c7ce8907e33e16e2ac61c1473d
           </Route>
         </Routes>
       </Router>

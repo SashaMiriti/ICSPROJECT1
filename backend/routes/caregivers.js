@@ -26,28 +26,16 @@ router.get('/', async (req, res) => {
             maxHourlyRate,
             minExperience,
             location,
-            radius = 50, // Default radius in kilometers
+            radius = 50,
             sortBy = 'rating'
         } = req.query;
 
         let query = { isVerified: true };
 
-        // Filter by services
-        if (services) {
-            query.services = { $in: services.split(',') };
-        }
+        if (services) query.services = { $in: services.split(',') };
+        if (maxHourlyRate) query.hourlyRate = { $lte: parseFloat(maxHourlyRate) };
+        if (minExperience) query.experienceYears = { $gte: parseInt(minExperience) };
 
-        // Filter by hourly rate
-        if (maxHourlyRate) {
-            query.hourlyRate = { $lte: parseFloat(maxHourlyRate) };
-        }
-
-        // Filter by experience
-        if (minExperience) {
-            query.experienceYears = { $gte: parseInt(minExperience) };
-        }
-
-        // Filter by location if provided
         if (location) {
             try {
                 const geoResults = await geocoder.geocode(location);
@@ -59,7 +47,7 @@ router.get('/', async (req, res) => {
                                 type: 'Point',
                                 coordinates: [longitude, latitude]
                             },
-                            $maxDistance: radius * 1000 // Convert km to meters
+                            $maxDistance: radius * 1000
                         }
                     };
                 }
@@ -72,7 +60,6 @@ router.get('/', async (req, res) => {
             .populate('user', ['name', 'email', 'phone'])
             .lean();
 
-        // Calculate average rating for each caregiver
         for (let caregiver of caregivers) {
             const reviews = await Review.find({ caregiver: caregiver._id });
             if (reviews.length > 0) {
@@ -85,7 +72,6 @@ router.get('/', async (req, res) => {
             }
         }
 
-        // Sort caregivers
         if (sortBy === 'rating') {
             caregivers.sort((a, b) => b.averageRating - a.averageRating);
         } else if (sortBy === 'experience') {
@@ -101,6 +87,35 @@ router.get('/', async (req, res) => {
     }
 });
 
+// ✅ Moved here to prevent Express from mistaking "profile" for an ID
+// @route   GET /api/caregivers/profile
+// @desc    Get caregiver profile for logged-in caregiver
+// @access  Private
+router.get('/profile', auth, async (req, res) => {
+    try {
+        console.log('User ID from token:', req.user.id);
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        console.log('User role:', user.role);
+        if (user.role !== 'caregiver') {
+            return res.status(403).json({ message: 'Not authorized as caregiver' });
+        }
+
+        const caregiver = await Caregiver.findOne({ user: user._id }).populate('user', ['name', 'email']);
+        if (!caregiver) {
+            console.log('No caregiver profile found for user:', user._id);
+            return res.status(404).json({ message: 'Caregiver profile not found' });
+        }
+
+        console.log('Returning caregiver profile:', caregiver._id);
+        res.json(caregiver);
+    } catch (err) {
+        console.error('Error fetching caregiver profile:', err.message);
+        res.status(500).json({ message: 'Server error while fetching caregiver profile' });
+    }
+});
+
 // @route   GET /api/caregivers/:id
 // @desc    Get caregiver by ID
 // @access  Public
@@ -113,12 +128,10 @@ router.get('/:id', async (req, res) => {
             return res.status(404).json({ message: 'Caregiver not found' });
         }
 
-        // Get reviews
         const reviews = await Review.find({ caregiver: caregiver._id })
             .populate('careSeeker', 'user')
             .populate('booking', 'service startTime');
 
-        // Calculate average rating
         if (reviews.length > 0) {
             const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
             caregiver.averageRating = totalRating / reviews.length;
@@ -234,4 +247,4 @@ router.get('/bookings/upcoming', auth, async (req, res) => {
     }
 });
 
-module.exports = router; 
+module.exports = router;

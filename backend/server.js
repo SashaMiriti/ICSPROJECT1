@@ -13,13 +13,14 @@ const User = require('./models/User');
 // Import the Item model (now from its own file)
 const Item = require('./models/Item');
 
-// Import routes (we'll create these next)
+// Import routes
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const caregiverRoutes = require('./routes/caregivers');
 const careSeekerRoutes = require('./routes/careSeekers');
 const bookingRoutes = require('./routes/bookings');
 const reviewRoutes = require('./routes/reviews');
+const adminRoutes = require('./routes/admin'); // ✅ Added admin routes
 
 const app = express();
 const server = http.createServer(app);
@@ -30,16 +31,18 @@ const io = socketIo(server, {
     }
 });
 
-const PORT = process.env.PORT || 5000; // Use port 5000 for backend
-
-// Define a JWT secret key. BEST PRACTICE: Store this securely in your .env file!
-// For development, we'll keep a fallback here.
+const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkeythatshouldbeprotected'; 
 
+const testEmailRoutes = require('./routes/testEmail');
+
 // Middleware
-app.use(cors()); // Enable CORS for all origins (for development)
-app.use(express.json()); // Parse JSON request bodies
+app.use(cors());
+app.use(express.json());
+app.use('/api/test', testEmailRoutes);
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/TogetherCare')
@@ -63,43 +66,35 @@ io.on('connection', (socket) => {
     });
 });
 
-// --- Authentication Middleware (for protecting routes) ---
+// --- Authentication Middleware ---
 function auth(req, res, next) {
-    const token = req.header('x-auth-token'); // Get token from header
-
-    // Check for token
+    const token = req.header('x-auth-token');
     if (!token) {
         return res.status(401).json({ message: 'No token, authorization denied' });
     }
 
     try {
-        // Verify token
         const decoded = jwt.verify(token, JWT_SECRET);
-        // Add user from payload
         req.user = decoded.user;
-        next(); // Proceed to the next middleware/route handler
+        next();
     } catch (e) {
         res.status(401).json({ message: 'Token is not valid' });
     }
 }
 
-// --- API Routes for Items (unchanged functionality, just importing model) ---
-// GET all items
+// --- API Routes for Items ---
 app.get('/api/items', async (req, res) => {
     try {
         const items = await Item.find();
         res.json(items);
     } catch (err) {
-        console.error(err.message); // Log the actual error
+        console.error(err.message);
         res.status(500).json({ message: 'Server Error fetching items' });
     }
 });
 
-// POST a new item (now potentially protected, we'll add 'auth' middleware later if needed)
 app.post('/api/items', async (req, res) => {
-    const { name, description } = req.body; // Destructure directly
-
-    // Basic validation
+    const { name, description } = req.body;
     if (!name) {
         return res.status(400).json({ message: 'Please enter a name for the item' });
     }
@@ -110,12 +105,11 @@ app.post('/api/items', async (req, res) => {
         const savedItem = await newItem.save();
         res.status(201).json(savedItem);
     } catch (err) {
-        console.error(err.message); // Log the actual error
+        console.error(err.message);
         res.status(500).json({ message: 'Server Error adding item' });
     }
 });
 
-// DELETE an item (now potentially protected)
 app.delete('/api/items/:id', async (req, res) => {
     try {
         const item = await Item.findById(req.params.id);
@@ -123,28 +117,30 @@ app.delete('/api/items/:id', async (req, res) => {
             return res.status(404).json({ message: 'Item not found' });
         }
 
-        await Item.deleteOne({ _id: req.params.id }); // Using deleteOne for Mongoose 6+
+        await Item.deleteOne({ _id: req.params.id });
         res.json({ message: 'Item deleted successfully' });
     } catch (err) {
-        console.error(err.message); // Log the actual error
+        console.error(err.message);
         if (err.kind === 'ObjectId') {
             return res.status(400).json({ message: 'Invalid Item ID format' });
         }
         res.status(500).json({ message: 'Server Error deleting item' });
     }
 });
-// Basic route for the homepage
+
+// Basic route for homepage
 app.get('/', (req, res) => {
     res.send('API is running...');
 });
 
-// Routes
+// ✅ API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/caregivers', caregiverRoutes);
 app.use('/api/care-seekers', careSeekerRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/admin', require ('./routes/admin')); 
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -2,6 +2,9 @@
 module.exports = {
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
+    // Add the specific paths for your new authentication pages here:
+    "./src/pages/auth/ForgotPassword.js",
+    "./src/pages/auth/ResetPassword.js",
   ],
   theme: {
     extend: {
@@ -39,4 +42,4 @@ module.exports = {
   plugins: [
     require('@tailwindcss/forms'),
   ],
-} 
+}

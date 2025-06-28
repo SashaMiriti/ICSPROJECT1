@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+// Removed: const crypto = require('crypto'); // This line is no longer needed here
 
 /**
  * Mongoose Schema for the CareSeeker model.
@@ -63,6 +64,11 @@ const CareSeekerSchema = new mongoose.Schema({
     },
     // --- END CRITICAL FIX ---
     budget: { type: Number }, // Optional: hourly or daily budget
+    // Removed: resetPasswordToken: String, // These fields are for the User model
+    // Removed: resetPasswordExpire: Date, // These fields are for the User model
 }, { timestamps: true });
 
+// Removed: CareSeekerSchema.methods.getResetPasswordToken = function() { ... }; // This method is for the User model
+
 module.exports = mongoose.model('CareSeeker', CareSeekerSchema);
+// This schema defines the CareSeeker model, which extends the User model with care seeker-specific fields.

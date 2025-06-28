@@ -86,9 +86,10 @@ const Navbar = () => {
                 </div>
             ) : (
                 <div>
-                    <Link to="/login" style={{ margin: '0 10px', color: '#333', textDecoration: 'none' }}>Login</Link>
-                    <Link to="/register" style={{ padding: '8px 15px', backgroundColor: '#2e7d32', color: 'white', textDecoration: 'none', borderRadius: '5px' }}>Register</Link>
-                </div>
+  <Link to="/login" style={{ margin: '0 10px', color: '#333', textDecoration: 'none' }}>Sign In</Link>
+  <Link to="/register" style={{ padding: '8px 15px', backgroundColor: '#2e7d32', color: 'white', textDecoration: 'none', borderRadius: '5px' }}>Sign Up</Link>
+</div>
+
             )}
         </nav>
     );

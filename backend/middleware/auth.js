@@ -1,22 +1,26 @@
 const jwt = require('jsonwebtoken');
+const asyncHandler = require('./asyncHandler'); // If you use this for catching async errors
 
-module.exports = function(req, res, next) {
-    // Get token from header
+module.exports = asyncHandler(async (req, res, next) => {
     const token = req.header('x-auth-token');
 
-    // Check if no token
     if (!token) {
-        return res.status(401).json({ message: 'No token, authorization denied' });
+        return res.status(401).json({ msg: 'No token, authorization denied' });
     }
 
     try {
-        // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        
-        // Add user from payload to request
+
+        // ✅ Fix: Attach the user field from the token
         req.user = decoded.user;
+
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ msg: 'Token decoded but user ID missing' });
+        }
+
         next();
     } catch (err) {
-        res.status(401).json({ message: 'Token is not valid' });
+        console.error('JWT verification failed:', err.message);
+        res.status(401).json({ msg: 'Token is not valid' });
     }
-}; 
+});

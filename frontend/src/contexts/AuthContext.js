@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
+
 import axios from 'axios';
 import toast from 'react-hot-toast';
-// import { useNavigate } from 'react-router-dom'; // <--- REMOVED THIS IMPORT
 
 const AuthContext = createContext(null);
 
@@ -13,101 +13,88 @@ export const useAuth = () => {
   return context;
 };
 
+const API = axios.create({
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  timeout: 8000,
+});
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('token'));
-  // const navigate = useNavigate(); // <--- REMOVED THIS HOOK
+  const [userRole, setUserRole] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [token, setToken] = useState(localStorage.getItem('token') || '');
 
-  useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUsername = localStorage.getItem('username');
-    const storedRole = localStorage.getItem('role');
+  const login = async (email, password, role) => {
+  setLoading(true);
+  try {
+    const res = await API.post('/auth/login', { email, password, role });
+    const { token, user } = res.data;
 
-    if (storedToken) {
-      setToken(storedToken);
-      if (storedUsername && storedRole) {
-        setUser({ username: storedUsername, role: storedRole });
-        setLoading(false);
-        fetchUser(storedToken);
-      } else {
-        fetchUser(storedToken);
-      }
-    } else {
-      setLoading(false);
-    }
-  }, []);
+    localStorage.setItem('token', token);
+    localStorage.setItem('username', user.username);
+    localStorage.setItem('role', user.role);
 
-  const fetchUser = async (currentAuthToken) => {
-    try {
-      const response = await axios.get('http://localhost:5000/api/auth/me', {
-        headers: {
-          'x-auth-token': currentAuthToken
-        }
-      });
-      setUser(response.data);
-      localStorage.setItem('username', response.data.username);
-      localStorage.setItem('role', response.data.role);
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      // We no longer call logout() directly here to avoid navigate error,
-      // the consuming component should check user status and navigate if needed.
-      localStorage.removeItem('token');
-      localStorage.removeItem('username');
-      localStorage.removeItem('role');
-      setToken(null);
-      setUser(null);
-      toast.error('Session expired or invalid. Please log in again.');
-      // The component calling useAuth will handle navigation to login page
-    } finally {
-      setLoading(false);
-    }
-  };
+    setToken(token);
+    setUser(user);
+    setUserRole(user.role);
 
-  const login = async (email, password) => {
-    try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
-        email,
-        password
-      });
-      const { token: newToken, user: userData } = response.data;
+    return { success: true, role: user.role }; // Let the Login.js handle redirection
+  } catch (err) {
+    const message = err.response?.data?.message;
 
-      localStorage.setItem('token', newToken);
-      localStorage.setItem('username', userData.username);
-      localStorage.setItem('role', userData.role);
+    // ✅ Redirect unapproved caregivers to the confirmation page
+    if (
+  role === 'caregiver' &&
+  err.response?.data?.message === 'Caregiver not yet approved by admin' &&
+  err.response?.data?.user?.username
+) {
+  const unapprovedName = encodeURIComponent(err.response.data.user.username);
+  return { success: false, redirectTo: `/caregiver-confirmation?name=${unapprovedName}` };
+}
 
-      setToken(newToken);
-      setUser(userData);
-      toast.success('Logged in successfully');
 
-      // <--- REMOVED NAVIGATION FROM HERE
-      return { success: true, role: userData.role }; // Return success and role for navigation in component
-    } catch (error) {
-      console.error('Login error:', error);
-      toast.error(error.response?.data?.message || 'Login failed');
-      return { success: false, error: error.response?.data?.message || 'Login failed' };
-    }
-  };
+    console.error('Login error:', err.response?.data || err.message);
+    toast.error(message || 'Login failed');
+    return { success: false, message: message || 'Login failed' };
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const register = async (userData) => {
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/register', userData);
-      const { token: newToken, user: newUserData } = response.data;
+      let payload = userData;
+      let headers = {};
 
-      localStorage.setItem('token', newToken);
-      localStorage.setItem('username', newUserData.username);
-      localStorage.setItem('role', newUserData.role);
+      if (userData instanceof FormData) {
+        headers['Content-Type'] = 'multipart/form-data';
+      }
 
-      setToken(newToken);
-      setUser(newUserData);
-      toast.success('Registered successfully');
+      const response = await API.post('/auth/register', payload, { headers });
+      const { user: newUserData } = response.data;
 
-      // <--- REMOVED NAVIGATION FROM HERE
-      return { success: true, role: newUserData.role }; // Return success and role for navigation in component
+      if (newUserData.role === 'careSeeker') {
+        const token = response.data.token;
+        localStorage.setItem('token', token);
+        localStorage.setItem('username', newUserData.username);
+        localStorage.setItem('role', newUserData.role);
+
+        setToken(token);
+        setUser(newUserData);
+        setUserRole(newUserData.role);
+
+        toast.success('Registered successfully');
+        return { success: true, role: newUserData.role };
+      } else {
+        toast.success('Application submitted. Wait for admin approval.');
+        return { success: true, role: newUserData.role };
+      }
     } catch (error) {
       console.error('Registration error:', error);
-      toast.error(error.response?.data?.message || 'Registration failed');
-      return { success: false, error: error.response?.data?.message || 'Registration failed' };
+      const errorMessage = error.response?.data?.message || 'Registration failed';
+      toast.error(errorMessage);
+      return { success: false, message: errorMessage };
     }
   };
 
@@ -115,24 +102,29 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('username');
     localStorage.removeItem('role');
-    setToken(null);
+    setToken('');
     setUser(null);
+    setUserRole(null);
     toast.success('Logged out successfully');
-    // <--- REMOVED NAVIGATION FROM HERE
   };
 
   const updateProfile = async (profileData) => {
     try {
-      const response = await axios.put(
-        'http://localhost:5000/api/users/profile',
-        profileData,
-        {
-          headers: {
-            'x-auth-token': token
-          }
-        }
-      );
-      setUser(prev => ({ ...prev, ...response.data.user }));
+      const response = await API.put('/users/profile', profileData, {
+        headers: {
+          'x-auth-token': token,
+        },
+      });
+
+      setUser((prev) => ({ ...prev, ...response.data.user }));
+      if (response.data.user.username) {
+        localStorage.setItem('username', response.data.user.username);
+      }
+      if (response.data.user.role) {
+        localStorage.setItem('role', response.data.user.role);
+        setUserRole(response.data.user.role);
+      }
+
       toast.success('Profile updated successfully');
       return true;
     } catch (error) {
@@ -144,6 +136,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    userRole,
     loading,
     login,
     register,
@@ -153,7 +146,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
   };
 
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export default AuthContext;

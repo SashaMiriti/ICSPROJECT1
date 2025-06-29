@@ -76,6 +76,7 @@ export default function About() {
           </p>
         </div>
         <dl className="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-8 text-base leading-7 sm:grid-cols-2 lg:mx-0 lg:max-w-none lg:gap-x-16">
+          {/* Trust and Safety */}
           <div className="relative pl-9">
             <dt className="inline font-semibold text-gray-900">
               <svg
@@ -98,6 +99,8 @@ export default function About() {
               checks and verification processes.
             </dd>
           </div>
+
+          {/* Quality Care */}
           <div className="relative pl-9">
             <dt className="inline font-semibold text-gray-900">
               <svg
@@ -120,6 +123,8 @@ export default function About() {
               right qualifications and experience.
             </dd>
           </div>
+
+          {/* Community */}
           <div className="relative pl-9">
             <dt className="inline font-semibold text-gray-900">
               <svg
@@ -138,6 +143,8 @@ export default function About() {
               can thrive and build lasting relationships.
             </dd>
           </div>
+
+          {/* Innovation */}
           <div className="relative pl-9">
             <dt className="inline font-semibold text-gray-900">
               <svg
@@ -175,7 +182,6 @@ export default function About() {
           </p>
         </div>
         <ul
-          role="list"
           className="mx-auto mt-20 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 sm:grid-cols-2 lg:mx-0 lg:max-w-none lg:grid-cols-3"
         >
           {team.map((person) => (
@@ -239,4 +245,4 @@ export default function About() {
       </div>
     </div>
   );
-} 
+}

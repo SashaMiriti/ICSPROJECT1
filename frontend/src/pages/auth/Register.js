@@ -87,7 +87,11 @@ export default function Register() {
         toast.error(result.message || 'Registration failed');
       }
     } catch (err) {
-      toast.error(err.message || 'An error occurred');
+      if (err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error(err.message || 'An error occurred');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -121,7 +125,6 @@ export default function Register() {
         >
           {({ values, errors, touched, setFieldValue, isSubmitting }) => (
             <Form className="space-y-6">
-              {/* Basic Fields */}
               {['username', 'email', 'phone'].map((field) => (
                 <div key={field}>
                   <label htmlFor={field} className="block text-sm font-medium text-gray-700 mb-1 capitalize">
@@ -131,14 +134,12 @@ export default function Register() {
                     id={field}
                     name={field}
                     type={field === 'email' ? 'email' : 'text'}
-                    className={`w-full px-4 py-2 border ${errors[field] && touched[field] ? 'border-red-500' : 'border-gray-300'
-                      } rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm`}
+                    className={`w-full px-4 py-2 border ${errors[field] && touched[field] ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm`}
                   />
                   <ErrorMessage name={field} component="p" className="text-sm text-red-600 mt-1" />
                 </div>
               ))}
 
-              {/* Passwords */}
               {[{ name: 'password', show: showPassword, setShow: setShowPassword },
               { name: 'confirmPassword', show: showConfirmPassword, setShow: setShowConfirmPassword }]
                 .map(({ name, show, setShow }) => (
@@ -151,8 +152,7 @@ export default function Register() {
                         id={name}
                         name={name}
                         type={show ? 'text' : 'password'}
-                        className={`w-full px-4 py-2 border ${errors[name] && touched[name] ? 'border-red-500' : 'border-gray-300'
-                          } rounded-md shadow-sm pr-10 focus:ring-primary-500 focus:border-primary-500 sm:text-sm`}
+                        className={`w-full px-4 py-2 border ${errors[name] && touched[name] ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm pr-10 focus:ring-primary-500 focus:border-primary-500 sm:text-sm`}
                       />
                       <button
                         type="button"
@@ -166,7 +166,6 @@ export default function Register() {
                   </div>
                 ))}
 
-              {/* Role Selector */}
               <div>
                 <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">I want to...</label>
                 <Field as="select" name="role" className="w-full px-4 py-2 border rounded-md shadow-sm">
@@ -177,7 +176,6 @@ export default function Register() {
                 <ErrorMessage name="role" component="p" className="text-sm text-red-600 mt-1" />
               </div>
 
-              {/* Caregiver-only Fields */}
               {values.role === 'caregiver' && (
                 <>
                   <div>
@@ -200,7 +198,6 @@ export default function Register() {
                 </>
               )}
 
-              {/* Location Fields */}
               {(values.role === 'caregiver' || values.role === 'careSeeker') && (
                 <>
                   <div>

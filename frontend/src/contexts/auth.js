@@ -44,13 +44,26 @@ export const AuthProvider = ({ children }) => {
 
   // On token change, set headers and get user
   useEffect(() => {
-    if (token) {
-      applyToken(token);
-      fetchUser();
-    } else {
+  const fetchUser = async () => {
+    try {
+      const response = await axios.get('/api/auth/me');
+      setUser(response.data.user);
+    } catch (err) {
+      console.error('Error fetching user:', err.response?.data || err.message);
+      logout(); // Clean up if token is invalid
+    } finally {
       setLoading(false);
     }
-  }, [token]);
+  };
+
+  if (token) {
+    applyToken(token);
+    fetchUser();
+  } else {
+    setLoading(false);
+  }
+}, [token]);
+
 
   // Login
   const login = async (email, password) => {

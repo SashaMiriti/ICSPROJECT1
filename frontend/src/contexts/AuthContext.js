@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
-
+import React, { createContext, useContext, useState, useEffect } from 'react'; // ✅ useEffect added here
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -24,43 +23,61 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState(localStorage.getItem('token') || '');
 
-  const login = async (email, password, role) => {
-  setLoading(true);
+  // ✅ Automatically fetch user on app load if token exists
+  const fetchUser = async () => {
   try {
-    const res = await API.post('/auth/login', { email, password, role });
-    const { token, user } = res.data;
-
-    localStorage.setItem('token', token);
-    localStorage.setItem('username', user.username);
-    localStorage.setItem('role', user.role);
-
-    setToken(token);
-    setUser(user);
-    setUserRole(user.role);
-
-    return { success: true, role: user.role }; // Let the Login.js handle redirection
-  } catch (err) {
-    const message = err.response?.data?.message;
-
-    // ✅ Redirect unapproved caregivers to the confirmation page
-    if (
-  role === 'caregiver' &&
-  err.response?.data?.message === 'Caregiver not yet approved by admin' &&
-  err.response?.data?.user?.username
-) {
-  const unapprovedName = encodeURIComponent(err.response.data.user.username);
-  return { success: false, redirectTo: `/caregiver-confirmation?name=${unapprovedName}` };
-}
-
-
-    console.error('Login error:', err.response?.data || err.message);
-    toast.error(message || 'Login failed');
-    return { success: false, message: message || 'Login failed' };
-  } finally {
-    setLoading(false);
+    const res = await API.get('/auth/me', {
+      headers: { 'x-auth-token': token },
+    });
+    setUser(res.data);
+    setUserRole(res.data.role);
+  } catch (error) {
+    console.error('Error fetching user on startup:', error);
   }
 };
 
+useEffect(() => {
+  if (token && !user) {
+    fetchUser();
+  }
+}, [token, user, fetchUser]);
+
+
+  const login = async (email, password, role) => {
+    setLoading(true);
+    try {
+      const res = await API.post('/auth/login', { email, password, role });
+      const { token, user } = res.data;
+
+      localStorage.setItem('token', token);
+      localStorage.setItem('username', user.username);
+      localStorage.setItem('role', user.role);
+
+      setToken(token);
+      setUser(user);
+      setUserRole(user.role);
+
+      return { success: true, role: user.role };
+    } catch (err) {
+      const message = err.response?.data?.message;
+
+      // ✅ Handle unapproved caregiver redirection
+      if (
+        role === 'caregiver' &&
+        err.response?.data?.message === 'Caregiver not yet approved by admin' &&
+        err.response?.data?.user?.username
+      ) {
+        const unapprovedName = encodeURIComponent(err.response.data.user.username);
+        return { success: false, redirectTo: `/caregiver-confirmation?name=${unapprovedName}` };
+      }
+
+      console.error('Login error:', err.response?.data || err.message);
+      toast.error(message || 'Login failed');
+      return { success: false, message: message || 'Login failed' };
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const register = async (userData) => {
     try {

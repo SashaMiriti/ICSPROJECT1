@@ -20,7 +20,7 @@ function ForgotPassword() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ email, role }),
+                body: JSON.stringify({ email}),
             });
 
             const data = await response.json();

@@ -233,7 +233,7 @@ router.post('/forgot-password', async (req, res, next) => {
     user.resetPasswordExpire = resetTokenExpiry;
     await user.save();
 
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+   const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
     const message = `You requested a password reset. Click to reset: ${resetUrl}`;
 
     await sendEmail({
@@ -246,6 +246,35 @@ router.post('/forgot-password', async (req, res, next) => {
   } catch (err) {
     console.error('Forgot password error:', err);
     return next(new ErrorResponse('Error sending reset email', 500));
+  }
+});
+// ✅ RESET PASSWORD
+router.put('/reset-password/:token', async (req, res, next) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  try {
+    const hashedToken = require('crypto').createHash('sha256').update(token).digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return next(new ErrorResponse('Invalid or expired token', 400));
+    }
+
+    // Hash and save new password
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Password has been reset successfully.' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    next(new ErrorResponse('Server error during password reset', 500));
   }
 });
 

@@ -11,22 +11,16 @@ const path = require('path');
 const User = require('./models/User');
 const Item = require('./models/Item');
 
-<<<<<<< HEAD
-// Import routes
-=======
 // Routes
->>>>>>> 88c45fe332bfa7c7ce8907e33e16e2ac61c1473d
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const caregiverRoutes = require('./routes/caregivers');
 const careSeekerRoutes = require('./routes/careSeekers');
 const bookingRoutes = require('./routes/bookings');
 const reviewRoutes = require('./routes/reviews');
-<<<<<<< HEAD
 const adminRoutes = require('./routes/admin'); // ✅ Added admin routes
-=======
 const careNeedsRoutes = require('./routes/careNeedsRoutes');
->>>>>>> 88c45fe332bfa7c7ce8907e33e16e2ac61c1473d
+const testEmailRoutes = require('./routes/testEmail');
 
 const app = express();
 const server = http.createServer(app);
@@ -39,33 +33,17 @@ const io = socketIo(server, {
   }
 });
 
-<<<<<<< HEAD
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkeythatshouldbeprotected'; 
-
-const testEmailRoutes = require('./routes/testEmail');
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkeythatshouldbeprotected';
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use('/api/test', testEmailRoutes);
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
+app.use('/api/test', testEmailRoutes);
 
 // Connect to MongoDB
-=======
-// Constants
-const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkeythatshouldbeprotected';
-
-// ✅ Middleware
-app.use(cors());
-app.use(express.json()); // Parses JSON body
-app.use(express.urlencoded({ extended: true })); // Parses URL-encoded body
-
-// ✅ MongoDB Connection
->>>>>>> 88c45fe332bfa7c7ce8907e33e16e2ac61c1473d
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/TogetherCare')
   .then(() => console.log('✅ MongoDB connected'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
@@ -82,55 +60,21 @@ io.on('connection', socket => {
   });
 });
 
-<<<<<<< HEAD
-// --- Authentication Middleware ---
-function auth(req, res, next) {
-    const token = req.header('x-auth-token');
-    if (!token) {
-        return res.status(401).json({ message: 'No token, authorization denied' });
-    }
-
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = decoded.user;
-        next();
-    } catch (e) {
-        res.status(401).json({ message: 'Token is not valid' });
-    }
-}
-
-// --- API Routes for Items ---
-app.get('/api/items', async (req, res) => {
-    try {
-        const items = await Item.find();
-        res.json(items);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).json({ message: 'Server Error fetching items' });
-    }
-});
-
-app.post('/api/items', async (req, res) => {
-    const { name, description } = req.body;
-    if (!name) {
-        return res.status(400).json({ message: 'Please enter a name for the item' });
-    }
-=======
-// ✅ Auth Middleware (for protected routes)
+// ✅ Auth Middleware
 function auth(req, res, next) {
   const token = req.header('x-auth-token');
   if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
+    req.user = decoded.user;
     next();
   } catch (e) {
     res.status(401).json({ message: 'Token is not valid' });
   }
 }
 
-// ✅ Sample API Routes (You can remove if not needed)
+// ✅ Item Routes
 app.get('/api/items', async (req, res) => {
   try {
     const items = await Item.find();
@@ -143,26 +87,14 @@ app.get('/api/items', async (req, res) => {
 app.post('/api/items', async (req, res) => {
   const { name, description } = req.body;
   if (!name) return res.status(400).json({ message: 'Item name required' });
->>>>>>> 88c45fe332bfa7c7ce8907e33e16e2ac61c1473d
 
   try {
     const newItem = new Item({ name, description });
-<<<<<<< HEAD
-
-    try {
-        const savedItem = await newItem.save();
-        res.status(201).json(savedItem);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).json({ message: 'Server Error adding item' });
-    }
-=======
     const savedItem = await newItem.save();
     res.status(201).json(savedItem);
   } catch (err) {
     res.status(500).json({ message: 'Server error adding item' });
   }
->>>>>>> 88c45fe332bfa7c7ce8907e33e16e2ac61c1473d
 });
 
 app.delete('/api/items/:id', async (req, res) => {
@@ -170,26 +102,6 @@ app.delete('/api/items/:id', async (req, res) => {
     const item = await Item.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Item not found' });
 
-<<<<<<< HEAD
-        await Item.deleteOne({ _id: req.params.id });
-        res.json({ message: 'Item deleted successfully' });
-    } catch (err) {
-        console.error(err.message);
-        if (err.kind === 'ObjectId') {
-            return res.status(400).json({ message: 'Invalid Item ID format' });
-        }
-        res.status(500).json({ message: 'Server Error deleting item' });
-    }
-});
-
-// Basic route for homepage
-app.get('/', (req, res) => {
-    res.send('API is running...');
-});
-
-// ✅ API Routes
-app.use('/api/auth', authRoutes);
-=======
     await item.deleteOne();
     res.json({ message: 'Item deleted successfully' });
   } catch (err) {
@@ -197,19 +109,15 @@ app.use('/api/auth', authRoutes);
   }
 });
 
-// ✅ Routes Setup
-app.use('/api/auth', authRoutes); // Login, Register, /me
->>>>>>> 88c45fe332bfa7c7ce8907e33e16e2ac61c1473d
+// ✅ API Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/caregivers', caregiverRoutes);
 app.use('/api/care-seekers', careSeekerRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/reviews', reviewRoutes);
-<<<<<<< HEAD
-app.use('/api/admin', require ('./routes/admin')); 
-=======
+app.use('/api/admin', adminRoutes);
 app.use('/api', careNeedsRoutes);
->>>>>>> 88c45fe332bfa7c7ce8907e33e16e2ac61c1473d
 
 // ✅ Root route
 app.get('/', (req, res) => {

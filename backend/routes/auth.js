@@ -205,6 +205,16 @@ router.post(
         }).save();
       }
 
+      let profileComplete = false;
+      let isVerified = false;
+      if (role === 'caregiver') {
+        const caregiver = await Caregiver.findOne({ user: user._id });
+        if (caregiver) {
+          profileComplete = caregiver.profileComplete || false;
+          isVerified = caregiver.isVerified || false;
+        }
+      }
+
       const token = jwt.sign({ user: { id: user._id } }, JWT_SECRET, { expiresIn: '30d' });
 
       res.status(201).json({
@@ -214,7 +224,9 @@ router.post(
           _id: user._id,
           username: user.username,
           email: user.email,
-          role: user.role
+          role: user.role,
+          profileComplete,
+          isVerified
         }
       });
     } catch (err) {

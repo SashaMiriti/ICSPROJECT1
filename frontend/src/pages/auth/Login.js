@@ -19,33 +19,41 @@ export default function Login() {
 
   const handleSubmit = async (values, { setSubmitting }) => {
   try {
+    console.log('🚀 Login form submitted with values:', values);
     const result = await login(values.email, values.password, values.role);
-    console.log('Login result:', result);
+    console.log('📋 Login result:', result);
 
     if (result.success) {
+      console.log('✅ Login successful, navigating to dashboard...');
       toast.success('Login successful!');
       switch (result.role) {
         case 'careSeeker':
+          console.log('🎯 Navigating to care seeker dashboard');
           navigate('/care-seeker/dashboard');
           break;
         case 'caregiver':
+          console.log('🎯 Navigating to caregiver dashboard');
           navigate('/caregiver/dashboard');
           break;
         case 'admin':
+          console.log('🎯 Navigating to admin dashboard');
           navigate('/admin/dashboard');
           break;
         default:
+          console.log('🎯 Navigating to home');
           navigate('/');
       }
     } else if (result.redirectTo) {
       // 👇 Unapproved caregiver: show toast + redirect
+      console.log('🔄 Redirecting unapproved caregiver to:', result.redirectTo);
       toast.error('You have not yet been approved by admin.');
       navigate(result.redirectTo);
     } else {
+      console.log('❌ Login failed:', result.message);
       toast.error(result.message || 'Login failed. Please check your credentials.');
     }
   } catch (error) {
-    console.error('Login component caught error:', error);
+    console.error('💥 Login component caught error:', error);
     toast.error(error.message || 'An unexpected error occurred during login.');
   } finally {
     setSubmitting(false);

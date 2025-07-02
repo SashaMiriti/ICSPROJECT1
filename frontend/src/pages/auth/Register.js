@@ -10,6 +10,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'; /
 import 'leaflet/dist/leaflet.css'; // Leaflet's core CSS for map styling
 import L from 'leaflet'; // Leaflet library for map functionalities
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'; // Icons for toggling password visibility
+import toast from 'react-hot-toast';
 
 // Define a custom marker icon for the Leaflet map
 const markerIcon = new L.Icon({
@@ -141,11 +142,15 @@ export default function Register() {
       }
       const result = await register(formData, values.role);
       if (result.success) {
-        navigate(
-          result.role === 'caregiver'
-            ? `/caregiver-confirmation?name=${encodeURIComponent(values.username)}`
-            : '/care-seeker/profile'
-        );
+        if (result.role === 'caregiver') {
+          if (result.profileComplete && result.isVerified) {
+            navigate('/caregiver/dashboard');
+          } else {
+            navigate(`/caregiver-confirmation?name=${encodeURIComponent(values.username)}`);
+          }
+        } else {
+          navigate('/care-seeker/profile');
+        }
       } else {
         setFormError(result.message || 'Registration failed');
       }

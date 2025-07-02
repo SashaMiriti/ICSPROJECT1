@@ -55,6 +55,14 @@ const validationSchema = Yup.object({
   }),
   locationAddress: Yup.string().required('Required'),
   locationCoordinates: Yup.array().of(Yup.number()).min(2, 'Click on the map').required(),
+  specializationCategory: Yup.string().when('role', {
+    is: 'caregiver',
+    then: (schema) =>
+      schema
+        .oneOf(['Elderly Care', 'People with Disabilities', 'Both'], 'Select a valid category')
+        .required('Specialization category is required'),
+    otherwise: (schema) => schema.notRequired(),
+  }),
 });
 
 export default function Register() {
@@ -62,17 +70,20 @@ export default function Register() {
   const { register } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [documentFile, setDocumentFile] = useState(null);
+  const [documentFiles, setDocumentFiles] = useState([]);
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
+      console.log('Submitting values:', values);
       const formData = new FormData();
       Object.entries(values).forEach(([key, val]) => {
         formData.append(key, Array.isArray(val) ? JSON.stringify(val) : val);
       });
 
-      if (values.role === 'caregiver' && documentFile) {
-        formData.append('certification', documentFile);
+      if (values.role === 'caregiver' && documentFiles && documentFiles.length > 0) {
+        Array.from(documentFiles).forEach(file => {
+          formData.append('certifications', file);
+        });
       }
 
       const result = await register(formData, values.role);
@@ -119,6 +130,7 @@ export default function Register() {
             bio: '',
             locationAddress: '',
             locationCoordinates: [],
+            specializationCategory: '',
           }}
           validationSchema={validationSchema}
           onSubmit={handleSubmit}
@@ -184,16 +196,27 @@ export default function Register() {
                     <ErrorMessage name="bio" component="p" className="text-sm text-red-600 mt-1" />
                   </div>
                   <div>
-                    <label htmlFor="certification" className="block text-sm font-medium text-gray-700 mb-1">Upload certification</label>
+                    <label htmlFor="specializationCategory" className="block text-sm font-medium text-gray-700 mb-1">Specialization Category</label>
+                    <Field as="select" name="specializationCategory" className="w-full px-4 py-2 border rounded-md shadow-sm">
+                      <option value="" disabled>Select category</option>
+                      <option value="Elderly Care">Elderly Care</option>
+                      <option value="People with Disabilities">People with Disabilities</option>
+                      <option value="Both">Both</option>
+                    </Field>
+                    <ErrorMessage name="specializationCategory" component="p" className="text-sm text-red-600 mt-1" />
+                  </div>
+                  <div>
+                    <label htmlFor="certification" className="block text-sm font-medium text-gray-700 mb-1">Upload certifications</label>
                     <input
                       id="certification"
-                      name="certification"
+                      name="certifications"
                       type="file"
                       accept=".pdf,.jpg,.png"
-                      onChange={(e) => setDocumentFile(e.currentTarget.files[0])}
+                      multiple
+                      onChange={(e) => setDocumentFiles(e.currentTarget.files)}
                       className="block w-full text-sm text-gray-700 border border-gray-300 rounded-md p-2"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Accepted: PDF, JPG, PNG</p>
+                    <p className="text-xs text-gray-500 mt-1">Accepted: PDF, JPG, PNG. You can select multiple files.</p>
                   </div>
                 </>
               )}

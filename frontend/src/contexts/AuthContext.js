@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'; // ✅ useEffect added here
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'; // ✅ useEffect added here
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -24,23 +24,35 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token') || '');
 
   // ✅ Automatically fetch user on app load if token exists
-  const fetchUser = async () => {
-  try {
-    const res = await API.get('/auth/me', {
-      headers: { 'x-auth-token': token },
-    });
-    setUser(res.data);
-    setUserRole(res.data.role);
-  } catch (error) {
-    console.error('Error fetching user on startup:', error);
-  }
-};
+  const fetchUser = useCallback(async () => {
+    try {
+      const res = await API.get('/auth/me', {
+        headers: { 'x-auth-token': token },
+      });
+      let userData = res.data;
+      // If caregiver, fetch caregiver profile for profileComplete
+      if (userData.role === 'caregiver') {
+        try {
+          const caregiverRes = await API.get('/caregivers/profile', {
+            headers: { 'x-auth-token': token },
+          });
+          userData = { ...userData, profileComplete: caregiverRes.data.profileComplete };
+        } catch (e) {
+          console.error('Error fetching caregiver profile for profileComplete:', e);
+        }
+      }
+      setUser(userData);
+      setUserRole(userData.role);
+    } catch (error) {
+      console.error('Error fetching user on startup:', error);
+    }
+  }, [token]);
 
-useEffect(() => {
-  if (token && !user) {
-    fetchUser();
-  }
-}, [token, user, fetchUser]);
+  useEffect(() => {
+    if (token && !user) {
+      fetchUser();
+    }
+  }, [token, user, fetchUser]);
 
 
   const login = async (email, password, role) => {
@@ -54,8 +66,20 @@ useEffect(() => {
       localStorage.setItem('role', user.role);
 
       setToken(token);
-      setUser(user);
-      setUserRole(user.role);
+      let userData = user;
+      // If caregiver, fetch caregiver profile for profileComplete
+      if (user.role === 'caregiver') {
+        try {
+          const caregiverRes = await API.get('/caregivers/profile', {
+            headers: { 'x-auth-token': token },
+          });
+          userData = { ...user, profileComplete: caregiverRes.data.profileComplete };
+        } catch (e) {
+          console.error('Error fetching caregiver profile for profileComplete:', e);
+        }
+      }
+      setUser(userData);
+      setUserRole(userData.role);
 
       return { success: true, role: user.role };
     } catch (err) {

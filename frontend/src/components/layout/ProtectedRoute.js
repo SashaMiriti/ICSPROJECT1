@@ -22,5 +22,10 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Redirect caregivers with incomplete profile
+  if (userRole === 'caregiver' && user && user.profileComplete === false && location.pathname !== '/caregiver/complete-profile') {
+    return <Navigate to="/caregiver/complete-profile" replace />;
+  }
+
   return children;
 }

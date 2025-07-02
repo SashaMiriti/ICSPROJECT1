@@ -113,7 +113,7 @@ router.post('/login', [
 // ✅ REGISTER
 router.post(
   '/register',
-  upload.single('certification'),
+  upload.array('certifications'),
   [
     body('username').notEmpty().withMessage('Username is required'),
     body('email').isEmail().withMessage('Valid email is required'),
@@ -148,7 +148,8 @@ router.post(
         phone,
         bio,
         locationAddress,
-        locationCoordinates
+        locationCoordinates,
+        specializationCategory
       } = req.body;
 
       const coords = JSON.parse(locationCoordinates);
@@ -183,15 +184,22 @@ router.post(
           location: geoJsonLocation
         }).save();
       } else if (role === 'caregiver') {
+        // Handle multiple file uploads
+        let documents = [];
+        if (req.files && req.files.length > 0) {
+          documents = req.files.map(file => ({
+            filename: path.join('certifications', file.filename),
+            status: 'pending'
+          }));
+        }
         await new Caregiver({
           user: user._id,
           fullName: username,
           contactNumber: phone,
           bio,
           location: geoJsonLocation,
-          documents: req.file
-            ? [{ filename: path.join('certifications', req.file.filename), status: 'pending' }]
-            : [],
+          specializationCategory,
+          documents,
           applicationStatus: 'pending'
         }).save();
       }

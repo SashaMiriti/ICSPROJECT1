@@ -343,4 +343,35 @@ console.log('🔍 Incoming caregiver update fields:', req.body);
         res.status(500).json({ message: 'Server error while updating profile' });
     }
 });
+
+// @route   GET /api/caregivers/:id/reviews
+// @desc    Get reviews for a caregiver
+// @access  Public
+router.get('/:id/reviews', async (req, res) => {
+    try {
+        const caregiver = await Caregiver.findById(req.params.id);
+        if (!caregiver) {
+            return res.status(404).json({ message: 'Caregiver not found' });
+        }
+        const reviews = await Review.find({ caregiver: caregiver._id })
+            .populate({
+                path: 'careSeeker',
+                populate: {
+                    path: 'user',
+                    select: 'name'
+                }
+            })
+            .populate('booking', 'service startTime')
+            .sort({ createdAt: -1 });
+
+        res.json(reviews);
+    } catch (err) {
+        console.error(err.message);
+        if (err.kind === 'ObjectId') {
+            return res.status(404).json({ message: 'Caregiver not found' });
+        }
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;

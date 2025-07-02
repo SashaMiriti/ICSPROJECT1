@@ -1,3 +1,5 @@
+// File: backend/models/Caregiver.js
+
 const mongoose = require('mongoose');
 
 /**

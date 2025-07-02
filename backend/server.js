@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
+const matchingRoutes = require('./routes/matchingRoutes');
 
 // Models
 const User = require('./models/User');
@@ -18,7 +19,7 @@ const caregiverRoutes = require('./routes/caregivers');
 const careSeekerRoutes = require('./routes/careSeekers');
 const bookingRoutes = require('./routes/bookings');
 const reviewRoutes = require('./routes/reviews');
-const adminRoutes = require('./routes/admin'); // ✅ Added admin routes
+const adminRoutes = require('./routes/admin');
 const careNeedsRoutes = require('./routes/careNeedsRoutes');
 const testEmailRoutes = require('./routes/testEmail');
 
@@ -33,6 +34,9 @@ const io = socketIo(server, {
   }
 });
 
+// Make io available to routes
+app.set('io', io);
+
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkeythatshouldbeprotected';
 
@@ -43,57 +47,73 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/test', testEmailRoutes);
 
-// Connect to MongoDB
+// MongoDB connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/TogetherCare')
-  .then(() => console.log(' MongoDB connected'))
-  .catch(err => console.error(' MongoDB connection error:', err));
+  .then(() => {
+    const db = mongoose.connection;
+    const conn = db.client.s.options;
+    console.log('✅ MongoDB connected');
+    console.log('📦 Connected to database:', db.name);
+    console.log('🌐 Host:', conn?.hosts ? conn.hosts.map(h => h.host + ':' + h.port).join(', ') : conn?.host + ':' + conn?.port);
+    console.log('🔗 Replica Set/Cluster:', conn.replicaSet || 'N/A');
+    console.log('🔑 Connection String:', (process.env.MONGODB_URI || 'mongodb://localhost:27017/TogetherCare').replace(/(mongodb(\+srv)?:\/\/)(.*?):(.*?)@/, '$1<user>:<password>@'));
+    if (conn.srvHost) {
+      console.log('🟢 Atlas SRV Host:', conn.srvHost);
+    }
+    if (conn.dbName) {
+      console.log('🗄️  Database Name:', conn.dbName);
+    }
+  })
+  .catch(err => console.error('❌ MongoDB connection error:', err));
 
-// ✅ Socket.IO Events
+// Socket.IO Events
 io.on('connection', socket => {
   console.log('🔌 New client connected');
-
   socket.on('join', userId => socket.join(userId));
   socket.on('bookingUpdate', data => io.to(data.userId).emit('bookingUpdated', data));
-
   socket.on('disconnect', () => {
     console.log('🔌 Client disconnected');
   });
 });
 
-// ✅ Auth Middleware
+// Authentication Middleware
 function auth(req, res, next) {
   const token = req.header('x-auth-token');
   if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded.user;
+    req.user = decoded.user || decoded; // Adjust to structure used in token
     next();
   } catch (e) {
     res.status(401).json({ message: 'Token is not valid' });
   }
 }
 
-// ✅ Item Routes
+// Item Routes
 app.get('/api/items', async (req, res) => {
   try {
     const items = await Item.find();
     res.json(items);
   } catch (err) {
-    res.status(500).json({ message: 'Server error fetching items' });
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error fetching items' });
   }
 });
 
 app.post('/api/items', async (req, res) => {
   const { name, description } = req.body;
-  if (!name) return res.status(400).json({ message: 'Item name required' });
+  if (!name) {
+    return res.status(400).json({ message: 'Please enter a name for the item' });
+  }
 
   try {
     const newItem = new Item({ name, description });
     const savedItem = await newItem.save();
     res.status(201).json(savedItem);
   } catch (err) {
-    res.status(500).json({ message: 'Server error adding item' });
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error adding item' });
   }
 });
 
@@ -102,14 +122,18 @@ app.delete('/api/items/:id', async (req, res) => {
     const item = await Item.findById(req.params.id);
     if (!item) return res.status(404).json({ message: 'Item not found' });
 
-    await item.deleteOne();
+    await Item.deleteOne({ _id: req.params.id });
     res.json({ message: 'Item deleted successfully' });
   } catch (err) {
-    res.status(500).json({ message: 'Server error deleting item' });
+    console.error(err.message);
+    if (err.kind === 'ObjectId') {
+      return res.status(400).json({ message: 'Invalid Item ID format' });
+    }
+    res.status(500).json({ message: 'Server Error deleting item' });
   }
 });
 
-// ✅ API Routes
+// Routes Setup
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/caregivers', caregiverRoutes);
@@ -118,13 +142,14 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', careNeedsRoutes);
+app.use('/api/match-caregivers', matchingRoutes);
 
-// ✅ Root route
+// Basic route for homepage
 app.get('/', (req, res) => {
   res.send('✅ API is running...');
 });
 
-// ✅ Error Handler
+// Error handler
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   res.status(err.status || 500).json({
@@ -132,7 +157,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ✅ Static Files in Production
+// Static file handling for production
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../frontend/build')));
   app.get('*', (req, res) => {
@@ -140,7 +165,7 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// ✅ Start the server
+// Start server
 server.listen(PORT, () => {
   console.log(` Server running on port ${PORT}`);
 });

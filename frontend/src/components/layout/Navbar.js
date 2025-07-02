@@ -38,10 +38,16 @@ const Navbar = () => {
                   My Profile
                 </Link>
                 <Link
-                  to="/care-seeker/search"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/care-seeker/search') ? 'border-blue-700 text-blue-700' : 'border-transparent text-gray-500 hover:border-blue-700 hover:text-blue-700'}`}
+                  to="/care-seeker/bookings"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/care-seeker/bookings') ? 'border-blue-700 text-blue-700' : 'border-transparent text-gray-500 hover:border-blue-700 hover:text-blue-700'}`}
                 >
                   My Bookings
+                </Link>
+                <Link
+                  to="/care-seeker/search"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/care-seeker/search') ? 'border-pink-700 text-pink-700' : 'border-transparent text-gray-500 hover:border-pink-700 hover:text-pink-700'}`}
+                >
+                  Search Caregivers
                 </Link>
                 <Link
                   to="/care-seeker/feedback"

@@ -1,8 +1,11 @@
 const express = require('express');
 const router = express.Router();
+const auth = require('../middleware/auth');
 const User = require('../models/User');
 const Caregiver = require('../models/Caregiver');
 const sendEmail = require('../utils/sendEmail');
+const CareSeeker = require('../models/CareSeeker');
+const Booking = require('../models/Booking');
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5000';
 
@@ -113,6 +116,115 @@ router.put('/reject-caregiver/:id', async (req, res) => {
   } catch (error) {
     console.error('Reject error:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET /api/admin/statistics
+// @desc    Get admin dashboard statistics
+// @access  Private (admin)
+router.get('/statistics', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized as admin' });
+    }
+    const totalCareSeekers = await CareSeeker.countDocuments();
+    const totalCaregivers = await Caregiver.countDocuments();
+    const totalBookings = await Booking.countDocuments();
+    const approvedBookings = await Booking.countDocuments({ status: 'accepted' });
+    const pendingBookings = await Booking.countDocuments({ status: 'pending' });
+    const cancelledBookings = await Booking.countDocuments({ status: 'cancelled' });
+    res.json({
+      totalCareSeekers,
+      totalCaregivers,
+      totalBookings,
+      approvedBookings,
+      pendingBookings,
+      cancelledBookings
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET /api/admin/care-seekers
+// @desc    Get all care seekers with user info
+// @access  Private (admin)
+router.get('/care-seekers', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized as admin' });
+    }
+    const careSeekers = await CareSeeker.find().populate('user', 'email');
+    res.json(careSeekers);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET /api/admin/care-seekers/:id
+// @desc    Get a single care seeker with user info
+// @access  Private (admin)
+router.get('/care-seekers/:id', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized as admin' });
+    }
+    const careSeeker = await CareSeeker.findById(req.params.id).populate('user', 'email');
+    if (!careSeeker) return res.status(404).json({ message: 'Care seeker not found' });
+    res.json(careSeeker);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET /api/admin/care-seekers/:id/bookings
+// @desc    Get all bookings for a care seeker
+// @access  Private (admin)
+router.get('/care-seekers/:id/bookings', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized as admin' });
+    }
+    const bookings = await Booking.find({ careSeeker: req.params.id })
+      .populate({
+        path: 'caregiver',
+        populate: { path: 'user', select: 'name' }
+      });
+    res.json(bookings);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   DELETE /api/admin/care-seekers/:id
+// @desc    Delete a care seeker, their user, and bookings
+// @access  Private (admin)
+router.delete('/care-seekers/:id', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized as admin' });
+    }
+    const careSeeker = await CareSeeker.findById(req.params.id);
+    if (!careSeeker) return res.status(404).json({ message: 'Care seeker not found' });
+    // Delete all bookings for this care seeker
+    await Booking.deleteMany({ careSeeker: careSeeker._id });
+    // Delete the user account
+    await User.findByIdAndDelete(careSeeker.user);
+    // Delete the care seeker profile
+    await CareSeeker.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Care seeker and related data deleted' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
   }
 });
 

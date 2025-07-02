@@ -9,6 +9,8 @@ export default function CaregiverDashboard() {
   const [caregiverProfile, setCaregiverProfile] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -19,10 +21,11 @@ export default function CaregiverDashboard() {
             'x-auth-token': token,
           },
         });
-        console.log('Caregiver profile data:', res.data);
         setCaregiverProfile(res.data);
       } catch (err) {
-        console.error('❌ Error fetching caregiver profile:', err);
+        setError('Could not load caregiver profile. Please try again later.');
+      } finally {
+        setLoading(false);
       }
     };
     if (user?.role === 'caregiver') {
@@ -47,13 +50,29 @@ export default function CaregiverDashboard() {
     };
   }, [dropdownOpen]);
 
-  const fullName = caregiverProfile?.fullName || 'Caregiver';
+  const fullName = caregiverProfile?.fullName || user?.username || user?.name || 'Caregiver';
   const initial = fullName?.charAt(0)?.toUpperCase() || 'C';
 
   const handleLogout = () => {
     if (logout) logout();
     navigate('/login');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-green-50">
+        <div className="text-center text-gray-500">Loading your caregiver dashboard...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-green-50">
+        <div className="text-center text-red-500">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-green-50 relative">

@@ -22,13 +22,36 @@ const geocoder = NodeGeocoder({
 router.get('/profile', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
-        if (user.role !== 'care seeker') {
+        if (user.role !== 'careSeeker') {
             return res.status(403).json({ message: 'Not authorized as care seeker' });
         }
 
-        const careSeeker = await CareSeeker.findOne({ user: req.user.id });
+        let careSeeker = await CareSeeker.findOne({ user: req.user.id });
         if (!careSeeker) {
-            return res.status(404).json({ message: 'Care seeker profile not found' });
+            // Create a new care seeker profile if it doesn't exist
+            careSeeker = new CareSeeker({
+                user: req.user.id,
+                fullName: user.username,
+                contactNumber: user.phone || '',
+                careType: [],
+                medicalConditions: [],
+                requiredTasks: [],
+                caregiverGenderPreference: 'No Preference',
+                languagePreferences: [],
+                culturalConsiderations: '',
+                schedule: {
+                    days: [],
+                    timeSlots: [{ startTime: '', endTime: '' }]
+                },
+                location: {
+                    type: 'Point',
+                    coordinates: [36.8219, -1.2921], // [longitude, latitude]
+                    address: 'Nairobi, Kenya'
+                },
+                budget: null,
+                specialNeeds: ''
+            });
+            await careSeeker.save();
         }
 
         res.json(careSeeker);
@@ -42,7 +65,7 @@ router.get('/profile', auth, async (req, res) => {
 // @desc    Update care seeker profile
 // @access  Private
 router.put('/profile', [auth, [
-    check('preferredServices', 'At least one preferred service is required').isArray({ min: 1 })
+    check('fullName', 'Full name is required').not().isEmpty()
 ]], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -51,46 +74,76 @@ router.put('/profile', [auth, [
 
     try {
         const user = await User.findById(req.user.id);
-        if (user.role !== 'care seeker') {
+        if (user.role !== 'careSeeker') {
             return res.status(403).json({ message: 'Not authorized as care seeker' });
         }
 
+        // Log the current database name
+        console.log('🔗 Careseeker profile route using database:', req.app.get('mongooseConnection')?.name || (require('mongoose').connection.name));
+
         const {
-            specialRequirements,
-            preferredServices,
-            preferences,
-            location
+            fullName,
+            contactNumber,
+            careType,
+            medicalConditions,
+            requiredTasks,
+            caregiverGenderPreference,
+            languagePreferences,
+            culturalConsiderations,
+            schedule,
+            location,
+            budget,
+            specialNeeds
         } = req.body;
 
+        // Only use coordinates from frontend; do not attempt geocoding
         let coordinates = [];
-        if (location && location.address) {
-            try {
-                const geoResults = await geocoder.geocode(location.address);
-                if (geoResults.length > 0) {
-                    const { latitude, longitude } = geoResults[0];
-                    coordinates = [longitude, latitude];
-                }
-            } catch (error) {
-                console.error('Geocoding error:', error);
-            }
+        if (location && Array.isArray(location.coordinates) && location.coordinates.length === 2) {
+            coordinates = location.coordinates;
         }
+        // Log the received location and coordinates for debugging
+        console.log('Received location:', location);
+        console.log('Extracted coordinates:', coordinates);
 
         const careSeekerFields = {
-            specialRequirements,
-            preferredServices,
-            preferences,
-            location: location ? {
+            fullName,
+            contactNumber,
+            careType,
+            medicalConditions,
+            requiredTasks,
+            caregiverGenderPreference,
+            languagePreferences,
+            culturalConsiderations,
+            schedule,
+            budget,
+            specialNeeds
+        };
+
+        // Only add location if both address and coordinates are present
+        if (location && location.address && coordinates.length === 2) {
+            careSeekerFields.location = {
                 type: 'Point',
                 coordinates,
                 address: location.address
-            } : undefined
-        };
+            };
+        } else if (location && location.address) {
+            console.warn('Location coordinates missing; not updating location field.');
+        }
 
         let careSeeker = await CareSeeker.findOneAndUpdate(
             { user: req.user.id },
             { $set: careSeekerFields },
-            { new: true }
+            { new: true, upsert: true }
         );
+
+        let locationToSend = { ...careSeeker.location };
+        if (!locationToSend.coordinates || locationToSend.coordinates.length !== 2) {
+            locationToSend = {
+                type: 'Point',
+                coordinates: [36.8219, -1.2921],
+                address: 'Nairobi, Kenya'
+            };
+        }
 
         res.json(careSeeker);
     } catch (err) {
@@ -105,7 +158,7 @@ router.put('/profile', [auth, [
 router.get('/bookings', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
-        if (user.role !== 'care seeker') {
+        if (user.role !== 'careSeeker') {
             return res.status(403).json({ message: 'Not authorized as care seeker' });
         }
 
@@ -131,6 +184,62 @@ router.get('/bookings', auth, async (req, res) => {
     }
 });
 
+// @route   GET /api/care-seekers/reviews/:bookingId
+// @desc    Check if review exists for a specific booking
+// @access  Private
+router.get('/reviews/:bookingId', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (user.role !== 'careSeeker') {
+            return res.status(403).json({ message: 'Not authorized as care seeker' });
+        }
+
+        const review = await Review.findOne({ booking: req.params.bookingId });
+        
+        if (review) {
+            res.json(review);
+        } else {
+            res.status(404).json({ message: 'Review not found' });
+        }
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/care-seekers/reviews
+// @desc    Get all reviews by care seeker
+// @access  Private
+router.get('/reviews', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (user.role !== 'careSeeker') {
+            return res.status(403).json({ message: 'Not authorized as care seeker' });
+        }
+
+        const careSeeker = await CareSeeker.findOne({ user: req.user.id });
+        if (!careSeeker) {
+            return res.status(404).json({ message: 'Care seeker profile not found' });
+        }
+
+        const reviews = await Review.find({ careSeeker: careSeeker._id })
+            .populate({
+                path: 'caregiver',
+                populate: {
+                    path: 'user',
+                    select: 'name email'
+                }
+            })
+            .populate('booking', 'service startTime endTime')
+            .sort({ createdAt: -1 });
+
+        res.json(reviews);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 // @route   POST /api/care-seekers/reviews
 // @desc    Create a review for a caregiver
 // @access  Private
@@ -146,7 +255,7 @@ router.post('/reviews', [auth, [
 
     try {
         const user = await User.findById(req.user.id);
-        if (user.role !== 'care seeker') {
+        if (user.role !== 'careSeeker') {
             return res.status(403).json({ message: 'Not authorized as care seeker' });
         }
 
@@ -183,6 +292,25 @@ router.post('/reviews', [auth, [
         });
 
         await review.save();
+
+        // Populate the review for response
+        await review.populate([
+            {
+                path: 'caregiver',
+                populate: {
+                    path: 'user',
+                    select: 'name email'
+                }
+            },
+            {
+                path: 'careSeeker',
+                populate: {
+                    path: 'user',
+                    select: 'name email'
+                }
+            },
+            'booking'
+        ]);
 
         res.json(review);
     } catch (err) {

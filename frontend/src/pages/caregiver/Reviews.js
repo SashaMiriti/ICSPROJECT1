@@ -1,96 +1,15 @@
-import React from 'react';
-
-const mockReviews = [
-  {
-    id: 1,
-    client: 'Amina Ali',
-    rating: 5,
-    date: '2025-06-20', // Updated date
-    comment:
-      'Mercy was a true blessing for my elderly mother. So patient, kind, and always on time. Highly recommend her for anyone needing reliable care in Nairobi!',
-    service: 'Elderly Care',
-    careSeekerImage: 'https://randomuser.me/api/portraits/women/68.jpg', // Placeholder image
-  },
-  {
-    id: 2,
-    client: 'David Mwaura',
-    rating: 4,
-    date: '2025-06-15', // Updated date
-    comment:
-      'The caregiver provided was very understanding and gentle with my child who has special needs. Their approach was very helpful and professional.',
-    service: 'Special Needs Care',
-    careSeekerImage: 'https://randomuser.me/api/portraits/men/33.jpg', // Placeholder image
-  },
-  {
-    id: 3,
-    client: 'Grace Wanjiku',
-    rating: 5,
-    date: '2025-06-10', // Updated date
-    comment:
-      'Fantastic experience with the childcare service! Jane kept the kids engaged and safe. Truly reliable, will definitely use "Together Care" again.',
-    service: 'Child Care',
-    careSeekerImage: 'https://randomuser.me/api/portraits/women/45.jpg', // Placeholder image
-  },
-  {
-    id: 4,
-    client: 'Robert Kipchoge',
-    rating: 4, // Adjusted rating
-    date: '2025-06-05', // Updated date
-    comment:
-      'Impressed by the professionalism. My recovery process was made much smoother thanks to their attentive post-operative care.',
-    service: 'Post-operative Care',
-    careSeekerImage: 'https://randomuser.me/api/portraits/men/88.jpg', // Placeholder image
-  },
-  {
-    id: 5,
-    client: 'Fatuma Hassan',
-    rating: 3, // Adjusted rating
-    date: '2025-05-30', // Updated date
-    comment:
-      'Good companion care for my grandmother. She enjoys the conversations and activities. There was a minor scheduling mix-up but it was quickly resolved.',
-    service: 'Companion Care',
-    careSeekerImage: 'https://randomuser.me/api/portraits/women/22.jpg', // Placeholder image
-  },
-  {
-    id: 6,
-    client: 'James Omondi',
-    rating: 4, // Adjusted rating
-    date: '2025-05-25', // Updated date
-    comment:
-      'The physiotherapist was very skilled and helped me regain mobility. Very happy with the sessions.',
-    service: 'Physiotherapy Support',
-    careSeekerImage: 'https://randomuser.me/api/portraits/men/12.jpg', // Placeholder image
-  },
-  {
-    id: 7,
-    client: 'Njeri Kamau',
-    rating: 5,
-    date: '2025-06-22', // New review, recent date
-    comment:
-      'Excellent home nursing care. The nurse was very gentle and explained everything clearly. Made me feel very comfortable.',
-    service: 'Home Nursing',
-    careSeekerImage: 'https://randomuser.me/api/portraits/women/70.jpg', // New placeholder
-  },
-  {
-    id: 8,
-    client: 'Samuel Kimani',
-    rating: 5,
-    date: '2025-06-19', // New review, recent date
-    comment:
-      'The caregiver for my son with autism was exceptional. Very patient, resourceful, and understanding. Truly a blessing!',
-    service: 'Autism Support',
-    careSeekerImage: 'https://randomuser.me/api/portraits/men/50.jpg', // New placeholder
-  },
-];
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import toast from 'react-hot-toast';
 
 function StarRating({ rating }) {
   return (
     <div className="flex items-center">
-      {[0, 1, 2, 3, 4].map((star) => (
+      {[1, 2, 3, 4, 5].map((star) => (
         <svg
           key={star}
           className={`h-5 w-5 ${
-            star < rating ? 'text-yellow-400' : 'text-gray-300'
+            star <= rating ? 'text-yellow-400' : 'text-gray-300'
           }`}
           viewBox="0 0 20 20"
           fill="currentColor"
@@ -108,9 +27,90 @@ function StarRating({ rating }) {
 }
 
 export default function Reviews() {
-  const averageRating =
-    mockReviews.reduce((acc, review) => acc + review.rating, 0) /
-    mockReviews.length;
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchReviews();
+  }, []);
+
+  const fetchReviews = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setError('Please log in to view your reviews');
+        setLoading(false);
+        return;
+      }
+
+      const response = await axios.get('http://localhost:5000/api/caregivers/reviews', {
+        headers: { 'x-auth-token': token }
+      });
+
+      setReviews(response.data);
+      setError(null);
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+      setError('Failed to load reviews. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const formatDateTime = (dateTimeString) => {
+    const date = new Date(dateTimeString);
+    return {
+      date: date.toLocaleDateString(),
+      time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+  };
+
+  if (loading) {
+    return (
+      <div className="py-6">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading your reviews...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="py-6">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+            <button
+              onClick={fetchReviews}
+              className="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const averageRating = reviews.length > 0 
+    ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length 
+    : 0;
 
   return (
     <div className="py-6">
@@ -121,48 +121,66 @@ export default function Reviews() {
             <div className="mt-2 flex items-center">
               <StarRating rating={Math.round(averageRating)} />
               <p className="ml-2 text-sm text-gray-700">
-                {averageRating.toFixed(1)} out of 5 ({mockReviews.length} reviews)
+                {averageRating.toFixed(1)} out of 5 ({reviews.length} reviews)
               </p>
             </div>
           </div>
         </div>
 
-        <div className="mt-8 flow-root">
-          <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-            <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                <div className="divide-y divide-gray-300">
-                  {mockReviews.map((review) => (
-                    <div key={review.id} className="bg-white px-4 py-6">
-                      <div className="flex items-start justify-between"> {/* Changed items-center to items-start for image alignment */}
-                        <div className="flex items-center"> {/* New div for image and text content */}
-                            <img
-                                src={review.careSeekerImage}
-                                alt={review.client}
-                                className="h-12 w-12 rounded-full mr-4 object-cover" // Styling for image
-                            />
-                            <div>
+        {reviews.length === 0 ? (
+          <div className="mt-8 text-center">
+            <div className="bg-white rounded-lg shadow p-8">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No reviews yet</h3>
+              <p className="text-gray-600 mb-6">
+                You haven't received any reviews yet. Complete some bookings to start receiving feedback from care seekers.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-8 flow-root">
+            <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+              <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+                  <div className="divide-y divide-gray-300">
+                    {reviews.map((review) => {
+                      const bookingDateTime = formatDateTime(review.booking.startTime);
+                      
+                      return (
+                        <div key={review._id} className="bg-white px-4 py-6">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center">
+                              <div className="h-12 w-12 bg-primary-100 rounded-full flex items-center justify-center text-lg font-bold text-primary-700">
+                                {review.careSeeker?.user?.name?.[0] || 'C'}
+                              </div>
+                              <div className="ml-4">
                                 <h3 className="text-md font-semibold text-gray-900">
-                                    {review.client}
+                                  {review.careSeeker?.user?.name || 'Anonymous'}
                                 </h3>
-                                <p className="text-sm text-gray-500">{review.service}</p>
+                                <p className="text-sm text-gray-500">{review.booking.service}</p>
+                                <p className="text-xs text-gray-400">
+                                  {bookingDateTime.date} • {bookingDateTime.time}
+                                </p>
+                              </div>
                             </div>
+                            <p className="text-sm text-gray-500 text-right">
+                              {formatDate(review.createdAt)}
+                            </p>
+                          </div>
+                          <div className="mt-2">
+                            <StarRating rating={review.rating} />
+                          </div>
+                          <div className="mt-4 text-sm text-gray-600">
+                            <p className="leading-relaxed">{review.comment}</p>
+                          </div>
                         </div>
-                        <p className="text-sm text-gray-500 text-right">{review.date}</p> {/* Moved date to the right */}
-                      </div>
-                      <div className="mt-2">
-                        <StarRating rating={review.rating} />
-                      </div>
-                      <div className="mt-4 text-sm text-gray-600">
-                        <p className="leading-relaxed">{review.comment}</p>
-                      </div>
-                    </div>
-                  ))}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

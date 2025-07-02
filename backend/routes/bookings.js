@@ -67,7 +67,7 @@ router.post('/', [auth, [
         }
 
         // Check if caregiver provides this service
-        if (!caregiver.services.includes(service)) {
+        if (!caregiver.servicesOffered.includes(service)) {
             return res.status(400).json({ message: 'Caregiver does not provide this service' });
         }
 
@@ -88,6 +88,10 @@ router.post('/', [auth, [
         }
 
         const careSeeker = await CareSeeker.findOne({ user: req.user.id });
+        
+        if (!careSeeker) {
+            return res.status(400).json({ message: 'Care seeker profile not found. Please complete your profile first.' });
+        }
 
         // Calculate price based on duration and hourly rate
         const duration = moment.duration(end.diff(start)).asHours();

@@ -83,13 +83,11 @@ router.post('/login', [
       return next(new ErrorResponse('Invalid credentials', 401));
     }
 
-    if (role === 'caregiver') {
-      if (user.status !== 'approved') {
-        return res.status(403).json({
-          message: 'Caregiver not yet approved by admin',
-          user: { username: user.username }
-        });
-      }
+    if (role === 'caregiver' && user.status !== 'approved') {
+      return res.status(403).json({
+        message: 'Caregiver not yet approved by admin',
+        user: { username: user.username }
+      });
     }
 
     const token = jwt.sign({ user: { id: user._id } }, JWT_SECRET, { expiresIn: '30d' });
@@ -151,6 +149,9 @@ router.post(
         locationCoordinates,
         specializationCategory
       } = req.body;
+
+      // Log the current database name
+      console.log('🔗 Register route using database:', req.app.get('mongooseConnection')?.name || (require('mongoose').connection.name));
 
       const coords = JSON.parse(locationCoordinates);
 

@@ -47,7 +47,6 @@ const Navbar = () => {
                 <Link to="/" style={{ color: '#2e7d32', textDecoration: 'none', fontSize: '1.8rem', fontWeight: 'bold' }}>TogetherCare</Link>
                 <div style={{ marginLeft: '30px' }}>
                     <Link to="/" style={{ margin: '0 15px', color: '#333', textDecoration: 'none' }}>Home</Link>
-                    <Link to="/about" style={{ margin: '0 15px', color: '#333', textDecoration: 'none' }}>About</Link>
                     <Link to="/care-seeker/search" style={{ margin: '0 15px', color: '#333', textDecoration: 'none' }}>Find Caregivers</Link> {/* Directly link to search */}
                     <Link to="/my-bookings" style={{ margin: '0 15px', color: '#333', textDecoration: 'none' }}>My Bookings</Link>
                 </div>

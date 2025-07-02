@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "mongodb": "^6.17.0"
+    "mongodb": "^6.17.0",
+    "react-multi-date-picker": "^4.5.2"
   }
 }

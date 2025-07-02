@@ -2,31 +2,23 @@
 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/layout/Layout';
-<<<<<<< HEAD
 
-// Public Pages
-import LandingPage from './pages/LandingPage';
-import About from './pages/About';
+// Auth Pages
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import CaregiverConfirmation from './pages/auth/CaregiverConfirmation';
-=======
-import PrivateRoute from './components/auth/PrivateRoute';
 
 // Public Pages
-import Home from './pages/Home';
-import About from './pages/About';
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
->>>>>>> 88c45fe332bfa7c7ce8907e33e16e2ac61c1473d
+import LandingPage from './pages/LandingPage';
 
 // Care Seeker Pages
 import CareSeekerDashboard from './pages/care-seeker/Dashboard';
-import CareSeekerProfilePage from './pages/CareSeekerProfilePage';
+import CareSeekerProfilePage from './pages/care-seeker/CareSeekerProfilePage';
 import SearchCaregivers from './pages/care-seeker/SearchCaregivers';
 import CaregiverProfile from './pages/care-seeker/CaregiverProfile';
 import BookingForm from './pages/care-seeker/BookingForm';
@@ -46,9 +38,9 @@ import UploadDocuments from './pages/caregiver/UploadDocuments';
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminProfile from './pages/admin/AdminProfile';
-import PendingCaregivers from './components/PendingCaregiver'; 
+import PendingCaregivers from './components/PendingCaregiver';
 import CaregiverDetail from './pages/admin/CaregiverDetail';
-
+import CareSeekerDetail from './pages/admin/CareSeekerDetail';
 
 // Protected Route Wrapper
 import ProtectedRoute from './components/layout/ProtectedRoute';
@@ -64,17 +56,40 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#363636',
+              color: '#fff',
+            },
+            success: {
+              duration: 3000,
+              iconTheme: {
+                primary: '#4ade80',
+                secondary: '#fff',
+              },
+            },
+            error: {
+              duration: 4000,
+              iconTheme: {
+                primary: '#ef4444',
+                secondary: '#fff',
+              },
+            },
+          }}
+        />
         <Routes>
           <Route path="/caregiver-confirmation" element={<CaregiverConfirmation />} />
           <Route path="/" element={<Layout />}>
+            {/* Public Routes */}
             <Route index element={<LandingPage />} />
-            <Route path="about" element={<About />} />
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
             <Route path="forgot-password" element={<ForgotPassword />} />
             <Route path="reset-password/:resettoken" element={<ResetPassword />} />
 
-<<<<<<< HEAD
             {/* Care Seeker Protected Routes */}
             <Route path="care-seeker/dashboard" element={<ProtectedRoute allowedRoles={['careSeeker']}><CareSeekerDashboard /></ProtectedRoute>} />
             <Route path="care-seeker/profile" element={<ProtectedRoute allowedRoles={['careSeeker']}><CareSeekerProfilePage /></ProtectedRoute>} />
@@ -82,6 +97,10 @@ function App() {
             <Route path="care-seeker/caregiver/:id" element={<ProtectedRoute allowedRoles={['careSeeker']}><CaregiverProfile /></ProtectedRoute>} />
             <Route path="care-seeker/booking/:id" element={<ProtectedRoute allowedRoles={['careSeeker']}><BookingForm /></ProtectedRoute>} />
             <Route path="care-seeker/bookings" element={<ProtectedRoute allowedRoles={['careSeeker']}><CareSeekerBookings /></ProtectedRoute>} />
+            <Route path="care-seeker/needs" element={<ProtectedRoute allowedRoles={['careSeeker']}><NeedsForm /></ProtectedRoute>} />
+            <Route path="care-seeker/booking-details/:id" element={<ProtectedRoute allowedRoles={['careSeeker']}><BookingDetails /></ProtectedRoute>} />
+            <Route path="care-seeker/feedback" element={<ProtectedRoute allowedRoles={['careSeeker']}><Feedback /></ProtectedRoute>} />
+            <Route path="care-seeker/feedback/:bookingId" element={<ProtectedRoute allowedRoles={['careSeeker']}><Feedback /></ProtectedRoute>} />
 
             {/* Caregiver Protected Routes */}
             <Route path="caregiver/dashboard" element={<ProtectedRoute allowedRoles={['caregiver']}><CaregiverDashboard /></ProtectedRoute>} />
@@ -91,34 +110,15 @@ function App() {
             <Route path="caregiver/reviews" element={<ProtectedRoute allowedRoles={['caregiver']}><CaregiverReviews /></ProtectedRoute>} />
             <Route path="caregiver/upload-docs" element={<ProtectedRoute allowedRoles={['caregiver']}><UploadDocuments /></ProtectedRoute>} />
 
-            {/* ✅ Admin Protected Routes */}
+            {/* Admin Protected Routes */}
             <Route path="admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
             <Route path="admin/profile" element={<ProtectedRoute allowedRoles={['admin']}><AdminProfile /></ProtectedRoute>} />
             <Route path="admin/pending-caregivers" element={<ProtectedRoute allowedRoles={['admin']}><PendingCaregivers /></ProtectedRoute>} />
-            <Route path="/admin/caregiver/:id" element={<CaregiverDetail />} />
+            <Route path="/admin/caregiver/:id" element={<ProtectedRoute allowedRoles={['admin']}><CaregiverDetail /></ProtectedRoute>} />
+            <Route path="/admin/care-seeker/:id" element={<ProtectedRoute allowedRoles={['admin']}><CareSeekerDetail /></ProtectedRoute>} />
 
-=======
-            {/* Care Seeker Routes */}
-            <Route path="care-seeker/dashboard" element={<PrivateRoute><CareSeekerDashboard /></PrivateRoute>} />
-            <Route path="care-seeker/profile" element={<PrivateRoute><CareSeekerProfile /></PrivateRoute>} />
-            <Route path="care-seeker/search" element={<PrivateRoute><SearchCaregivers /></PrivateRoute>} />
-            <Route path="care-seeker/caregiver/:id" element={<PrivateRoute><CaregiverProfile /></PrivateRoute>} />
-            <Route path="care-seeker/booking/:id" element={<PrivateRoute><BookingForm /></PrivateRoute>} />
-            <Route path="care-seeker/bookings" element={<PrivateRoute><CareSeekerBookings /></PrivateRoute>} />
-            <Route path="care-seeker/needs" element={<PrivateRoute><NeedsForm /></PrivateRoute>} />
-            <Route path="care-seeker/booking-details/:id" element={<PrivateRoute><BookingDetails /></PrivateRoute>} />
-            <Route path="care-seeker/feedback" element={<PrivateRoute><Feedback /></PrivateRoute>} />
-
-            {/* Caregiver Routes */}
-            <Route path="caregiver/dashboard" element={<PrivateRoute><CaregiverDashboard /></PrivateRoute>} />
-            <Route path="caregiver/profile" element={<PrivateRoute><CaregiverProfileEdit /></PrivateRoute>} />
-            <Route path="caregiver/schedule" element={<PrivateRoute><CaregiverSchedule /></PrivateRoute>} />
-            <Route path="caregiver/bookings" element={<PrivateRoute><CaregiverBookings /></PrivateRoute>} />
-            <Route path="caregiver/reviews" element={<PrivateRoute><CaregiverReviews /></PrivateRoute>} />
-
-            {/* Fallback */}
+            {/* 404 Fallback */}
             <Route path="*" element={<NotFound />} />
->>>>>>> 88c45fe332bfa7c7ce8907e33e16e2ac61c1473d
           </Route>
         </Routes>
       </Router>

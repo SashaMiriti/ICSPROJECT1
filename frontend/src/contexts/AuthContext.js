@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState } from 'react';
-
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -7,16 +6,23 @@ const AuthContext = createContext(null);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
 
 const API = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/',
   timeout: 8000,
 });
+
+// Optional: attach interceptor for global error handling (e.g. auto logout on 401)
+// API.interceptors.response.use(null, error => {
+//   if (error.response?.status === 401) {
+//     localStorage.clear();
+//     window.location.href = '/login';
+//   }
+//   return Promise.reject(error);
+// });
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -25,74 +31,73 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token') || '');
 
   const login = async (email, password, role) => {
-  setLoading(true);
-  try {
-    const res = await API.post('/auth/login', { email, password, role });
-    const { token, user } = res.data;
+    setLoading(true);
+    try {
+      const res = await API.post('/auth/login', { email, password, role });
+      const { token, user } = res.data;
 
-    localStorage.setItem('token', token);
-    localStorage.setItem('username', user.username);
-    localStorage.setItem('role', user.role);
+      // Store in localStorage
+      localStorage.setItem('token', token);
+      localStorage.setItem('username', user.username);
+      localStorage.setItem('role', user.role);
 
-    setToken(token);
-    setUser(user);
-    setUserRole(user.role);
+      // Set state
+      setToken(token);
+      setUser(user);
+      setUserRole(user.role);
 
-    return { success: true, role: user.role }; // Let the Login.js handle redirection
-  } catch (err) {
-    const message = err.response?.data?.message;
+      return { success: true, role: user.role };
 
-    // ✅ Redirect unapproved caregivers to the confirmation page
-    if (
-  role === 'caregiver' &&
-  err.response?.data?.message === 'Caregiver not yet approved by admin' &&
-  err.response?.data?.user?.username
-) {
-  const unapprovedName = encodeURIComponent(err.response.data.user.username);
-  return { success: false, redirectTo: `/caregiver-confirmation?name=${unapprovedName}` };
-}
+    } catch (err) {
+      const message = err.response?.data?.message || 'Login failed';
 
+      // Redirect for unapproved caregivers
+      if (
+        role === 'caregiver' &&
+        message === 'Caregiver not yet approved by admin' &&
+        err.response?.data?.user?.username
+      ) {
+        const unapprovedName = encodeURIComponent(err.response.data.user.username);
+        return { success: false, redirectTo: `/caregiver-confirmation?name=${unapprovedName}` };
+      }
 
-    console.error('Login error:', err.response?.data || err.message);
-    toast.error(message || 'Login failed');
-    return { success: false, message: message || 'Login failed' };
-  } finally {
-    setLoading(false);
-  }
-};
-
+      console.error('Login error:', err);
+      toast.error(message);
+      return { success: false, message };
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const register = async (userData) => {
     try {
-      let payload = userData;
-      let headers = {};
+      const headers = userData instanceof FormData
+        ? { 'Content-Type': 'multipart/form-data' }
+        : {};
 
-      if (userData instanceof FormData) {
-        headers['Content-Type'] = 'multipart/form-data';
-      }
+      const res = await API.post('/auth/register', userData, { headers });
+      const { user: newUser, token: newToken } = res.data;
 
-      const response = await API.post('/auth/register', payload, { headers });
-      const { user: newUserData } = response.data;
+      if (newUser.role === 'careSeeker') {
+        // Auto-login care seekers
+        localStorage.setItem('token', newToken);
+        localStorage.setItem('username', newUser.username);
+        localStorage.setItem('role', newUser.role);
 
-      if (newUserData.role === 'careSeeker') {
-        const token = response.data.token;
-        localStorage.setItem('token', token);
-        localStorage.setItem('username', newUserData.username);
-        localStorage.setItem('role', newUserData.role);
-
-        setToken(token);
-        setUser(newUserData);
-        setUserRole(newUserData.role);
+        setToken(newToken);
+        setUser(newUser);
+        setUserRole(newUser.role);
 
         toast.success('Registered successfully');
-        return { success: true, role: newUserData.role };
+        return { success: true, role: newUser.role };
       } else {
         toast.success('Application submitted. Wait for admin approval.');
-        return { success: true, role: newUserData.role };
+        return { success: true, role: newUser.role };
       }
-    } catch (error) {
-      console.error('Registration error:', error);
-      const errorMessage = error.response?.data?.message || 'Registration failed';
+
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Registration failed';
+      console.error('Registration error:', err);
       toast.error(errorMessage);
       return { success: false, message: errorMessage };
     }
@@ -102,51 +107,58 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('username');
     localStorage.removeItem('role');
+
     setToken('');
     setUser(null);
     setUserRole(null);
+
     toast.success('Logged out successfully');
   };
 
   const updateProfile = async (profileData) => {
     try {
-      const response = await API.put('/users/profile', profileData, {
-        headers: {
-          'x-auth-token': token,
-        },
+      const res = await API.put('/users/profile', profileData, {
+        headers: { 'x-auth-token': token },
       });
 
-      setUser((prev) => ({ ...prev, ...response.data.user }));
-      if (response.data.user.username) {
-        localStorage.setItem('username', response.data.user.username);
+      const updatedUser = res.data.user;
+      setUser((prev) => ({ ...prev, ...updatedUser }));
+
+      if (updatedUser.username) {
+        localStorage.setItem('username', updatedUser.username);
       }
-      if (response.data.user.role) {
-        localStorage.setItem('role', response.data.user.role);
-        setUserRole(response.data.user.role);
+      if (updatedUser.role) {
+        localStorage.setItem('role', updatedUser.role);
+        setUserRole(updatedUser.role);
       }
 
       toast.success('Profile updated successfully');
       return true;
-    } catch (error) {
-      console.error('Profile update error:', error);
-      toast.error(error.response?.data?.message || 'Profile update failed');
+    } catch (err) {
+      const message = err.response?.data?.message || 'Profile update failed';
+      console.error('Profile update error:', err);
+      toast.error(message);
       return false;
     }
   };
 
-  const value = {
-    user,
-    userRole,
-    loading,
-    login,
-    register,
-    logout,
-    updateProfile,
-    token,
-    isAuthenticated: !!user,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        userRole,
+        token,
+        loading,
+        login,
+        register,
+        logout,
+        updateProfile,
+        isAuthenticated: !!user,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export default AuthContext;

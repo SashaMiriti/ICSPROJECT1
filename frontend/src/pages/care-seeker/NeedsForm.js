@@ -7,10 +7,11 @@ export default function NeedsForm() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     careType: '',
-    location: '',
+    location: '', // Can be shown but not used directly — used only for display or future map features
     schedule: '',
-    specialNeeds: '',
+    specialNeeds: ''
   });
+
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -23,18 +24,28 @@ export default function NeedsForm() {
     setLoading(true);
 
     try {
-      // Send form data to the backend
-      const response = await axios.post('/api/needs', formData); // Adjust URL as needed
+      const payload = {
+        careType: formData.careType,
+        schedule: formData.schedule,
+        specialNeeds: formData.specialNeeds,
+
+        // ⚠️ MOCKED coordinates for now (Nairobi)
+       // locationCoordinates: [36.8219, -1.2921]
+      };
+      console.log("Request URL:", `${process.env.REACT_APP_API_URL}/match-caregivers`);
+
+
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/match-caregivers`, payload);
+
+       // ✅ Extract data from the response
       const matchedCaregivers = response.data;
 
-      toast.success('Care needs submitted successfully!');
-      
-      // Redirect to search page with matched caregivers
       navigate('/care-seeker/search', { state: { matchedCaregivers } });
+
 
     } catch (error) {
       toast.error(
-        error.response?.data?.message || 'Failed to submit needs. Please try again.'
+        error.response?.data?.message || 'Failed to match caregivers.'
       );
       console.error('Submission error:', error);
     } finally {
@@ -46,9 +57,8 @@ export default function NeedsForm() {
     <form
       onSubmit={handleSubmit}
       className="max-w-xl mx-auto bg-white p-8 rounded-lg shadow-md"
-      aria-label="Care Needs Form"
     >
-      <h2 className="text-2xl font-bold mb-6 text-gray-900" tabIndex={0}>
+      <h2 className="text-2xl font-bold mb-6 text-gray-900">
         Tell us about your care needs
       </h2>
 
@@ -82,7 +92,7 @@ export default function NeedsForm() {
           value={formData.location}
           onChange={handleChange}
           required
-          className="w-full p-3 text-lg rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-600"
+          className="w-full p-3 text-lg rounded border border-gray-300"
           placeholder="e.g. Nairobi"
         />
       </div>
@@ -98,7 +108,7 @@ export default function NeedsForm() {
           value={formData.schedule}
           onChange={handleChange}
           required
-          className="w-full p-3 text-lg rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-600"
+          className="w-full p-3 text-lg rounded border border-gray-300"
           placeholder="e.g. Weekdays, 9am-1pm"
         />
       </div>
@@ -113,7 +123,7 @@ export default function NeedsForm() {
           value={formData.specialNeeds}
           onChange={handleChange}
           rows={3}
-          className="w-full p-3 text-lg rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-600"
+          className="w-full p-3 text-lg rounded border border-gray-300"
           placeholder="Describe any special requirements..."
         />
       </div>
@@ -125,7 +135,7 @@ export default function NeedsForm() {
       >
         {loading ? 'Submitting...' : 'Continue'}
       </button>
-      
+
       <button
         type="button"
         onClick={() => window.history.back()}

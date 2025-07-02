@@ -245,9 +245,6 @@ export default function Home() {
             >
               Create an account
             </Link>
-            <Link to="/about" className="text-sm font-semibold leading-6 text-gray-900">
-              Learn more <span aria-hidden="true">→</span>
-            </Link>
           </div>
         </div>
       </div>

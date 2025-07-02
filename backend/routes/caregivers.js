@@ -247,4 +247,68 @@ router.get('/bookings/upcoming', auth, async (req, res) => {
     }
 });
 
+// @route   GET /api/caregivers/reviews
+// @desc    Get caregiver's reviews
+// @access  Private
+router.get('/reviews', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (user.role !== 'caregiver') {
+            return res.status(403).json({ message: 'Not authorized as caregiver' });
+        }
+
+        const caregiver = await Caregiver.findOne({ user: req.user.id });
+        if (!caregiver) {
+            return res.status(404).json({ message: 'Caregiver profile not found' });
+        }
+
+        const reviews = await Review.find({ caregiver: caregiver._id })
+            .populate({
+                path: 'careSeeker',
+                populate: {
+                    path: 'user',
+                    select: 'name email'
+                }
+            })
+            .populate('booking', 'service startTime endTime')
+            .sort({ createdAt: -1 });
+
+        res.json(reviews);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   GET /api/caregivers/:id/reviews
+// @desc    Get reviews for a specific caregiver (public)
+// @access  Public
+router.get('/:id/reviews', async (req, res) => {
+    try {
+        const caregiver = await Caregiver.findById(req.params.id);
+        if (!caregiver) {
+            return res.status(404).json({ message: 'Caregiver not found' });
+        }
+
+        const reviews = await Review.find({ caregiver: caregiver._id })
+            .populate({
+                path: 'careSeeker',
+                populate: {
+                    path: 'user',
+                    select: 'name'
+                }
+            })
+            .populate('booking', 'service startTime')
+            .sort({ createdAt: -1 });
+
+        res.json(reviews);
+    } catch (err) {
+        console.error(err.message);
+        if (err.kind === 'ObjectId') {
+            return res.status(404).json({ message: 'Caregiver not found' });
+        }
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;

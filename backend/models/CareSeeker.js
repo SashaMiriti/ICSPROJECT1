@@ -1,74 +1,61 @@
+// File: backend/models/CareSeeker.js
+
 const mongoose = require('mongoose');
-// Removed: const crypto = require('crypto'); // This line is no longer needed here
 
 /**
  * Mongoose Schema for the CareSeeker model.
  * Extends the User model with care seeker-specific fields.
  */
 const CareSeekerSchema = new mongoose.Schema({
-    user: { // This links the care seeker profile to a general user account
+    user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
-        unique: true // A user can only have one care seeker profile
+        unique: true
     },
-    fullName: { type: String }, // e.g., "Steve Careseeker" - it's fine if this is duplicated from User, or only lives here
+    fullName: { type: String },
     contactNumber: { type: String },
-    careType: [{ // e.g., ['Elderly Care', 'Child Care', 'Special Needs']
+    careType: [{
         type: String,
         enum: ['Elderly Care', 'Child Care', 'Special Needs', 'Disability Support', 'Post-Op Recovery']
     }],
-    medicalConditions: [{ // e.g., ['Diabetes', 'Mobility Impairment']
-        type: String
-    }],
-    requiredTasks: [{ // e.g., ['Meal Prep', 'Bathing Assistance', 'Medication Reminders', 'Transportation']
-        type: String
-    }],
+    medicalConditions: [{ type: String }],
+    requiredTasks: [{ type: String }],
     caregiverGenderPreference: {
         type: String,
         enum: ['Male', 'Female', 'No Preference'],
         default: 'No Preference'
     },
-    languagePreferences: [{ // e.g., ['English', 'Swahili', 'Luo']
-        type: String
-    }],
-    culturalConsiderations: {
-        type: String // Free text for specific cultural needs
-    },
-    schedule: { // Desired care schedule
-        days: [{ // e.g., ['Monday', 'Wednesday', 'Friday']
+    languagePreferences: [{ type: String }],
+    culturalConsiderations: { type: String },
+    schedule: {
+        days: [{
             type: String,
             enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
         }],
         timeSlots: [{
-            startTime: { type: String }, // e.g., "09:00"
-            endTime: { type: String }    // e.g., "13:00"
+            startTime: { type: String },
+            endTime: { type: String }
         }]
     },
-    // --- CRITICAL FIX: Define location as GeoJSON Point type ---
-    location: { // Where care is needed (e.g., home address)
+    location: {
         type: {
-            type: String, // Must be 'Point' for GeoJSON Point
+            type: String,
             enum: ['Point'],
             required: true
         },
         coordinates: {
-            type: [Number], // Array of [longitude, latitude]
+            type: [Number],
             required: true,
-            index: '2dsphere' // This creates the geospatial index in MongoDB
+            index: '2dsphere'
         },
-        address: { // You can store the address string as a custom property within the GeoJSON object
+        address: {
             type: String,
-            required: true // Making it required based on your validation
+            required: true
         }
     },
-    // --- END CRITICAL FIX ---
-    budget: { type: Number }, // Optional: hourly or daily budget
-    // Removed: resetPasswordToken: String, // These fields are for the User model
-    // Removed: resetPasswordExpire: Date, // These fields are for the User model
+    budget: { type: Number },
+    specialNeeds: { type: String }
 }, { timestamps: true });
 
-// Removed: CareSeekerSchema.methods.getResetPasswordToken = function() { ... }; // This method is for the User model
-
 module.exports = mongoose.model('CareSeeker', CareSeekerSchema);
-// This schema defines the CareSeeker model, which extends the User model with care seeker-specific fields.

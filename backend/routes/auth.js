@@ -14,7 +14,6 @@ const sendEmail = require('../utils/sendEmail');
 const ErrorResponse = require('../utils/errorResponse');
 const authMiddleware = require('../middleware/auth');
 
-<<<<<<< HEAD
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // Multer setup
@@ -79,15 +78,12 @@ router.post('/login', [
       return next(new ErrorResponse('Invalid credentials', 401));
     }
 
-    if (role === 'caregiver') {
-  if (user.status !== 'approved') {
-    return res.status(403).json({
-      message: 'Caregiver not yet approved by admin',
-      user: { username: user.username }
-    });
-  }
-}
-
+    if (role === 'caregiver' && user.status !== 'approved') {
+      return res.status(403).json({
+        message: 'Caregiver not yet approved by admin',
+        user: { username: user.username }
+      });
+    }
 
     const token = jwt.sign({ user: { id: user._id } }, JWT_SECRET, { expiresIn: '30d' });
 
@@ -147,6 +143,9 @@ router.post(
         locationAddress,
         locationCoordinates
       } = req.body;
+
+      // Log the current database name
+      console.log('🔗 Register route using database:', req.app.get('mongooseConnection')?.name || (require('mongoose').connection.name));
 
       const coords = JSON.parse(locationCoordinates);
 
@@ -211,143 +210,5 @@ router.post(
     }
   }
 );
-=======
-// Utility to generate token
-const generateToken = (user) => {
-  const payload = {
-    user: {
-      id: user.id,
-      role: user.role
-    }
-  };
-  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' });
-};
-
-// @route   POST /api/auth/register
-router.post(
-  '/register',
-  [
-    check('name', 'Name is required').not().isEmpty(),
-    check('email', 'Valid email required').isEmail(),
-    check('password', 'Password must be 6+ chars').isLength({ min: 6 }),
-    check('role', 'Role must be caregiver or care seeker').isIn(['caregiver', 'care seeker', 'admin']),
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ message: errors.array()[0].msg });
-
-    const {
-      name,
-      email,
-      password,
-      role,
-      phone,
-      bio,
-      locationAddress,
-      locationCoordinates,
-      experienceYears,
-      hourlyRate,
-      services,
-      specialRequirements,
-      preferredServices
-    } = req.body;
-
-    try {
-      let user = await User.findOne({ email });
-      if (user) return res.status(400).json({ message: 'User already exists' });
-
-      user = new User({ name, email, password, role, phone });
-
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(password, salt);
-      await user.save();
-
-      // Save extended caregiver or care seeker info
-      if (role === 'caregiver') {
-        const caregiver = new Caregiver({
-          user: user._id,
-          bio: bio || '',
-          experienceYears: experienceYears || 0,
-          hourlyRate: hourlyRate || 0,
-          services: services || [],
-          location: {
-            address: locationAddress || '',
-            coordinates: Array.isArray(locationCoordinates) ? locationCoordinates : [0, 0],
-          }
-        });
-        await caregiver.save();
-      } else if (role === 'care seeker') {
-        const careSeeker = new CareSeeker({
-          user: user._id,
-          specialRequirements: specialRequirements || '',
-          preferredServices: preferredServices || [],
-          location: {
-            address: locationAddress || '',
-            coordinates: Array.isArray(locationCoordinates) ? locationCoordinates : [0, 0],
-          }
-        });
-        await careSeeker.save();
-      }
-
-      const token = generateToken(user);
-      res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
-
-    } catch (err) {
-      console.error('Register error:', err.message);
-      res.status(500).json({ message: 'Server error during registration' });
-    }
-  }
-);
-
-// @route   POST /api/auth/login
-router.post(
-  '/login',
-  [
-    check('email', 'Valid email required').isEmail(),
-    check('password', 'Password is required').exists()
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ message: errors.array()[0].msg });
-
-    const { email, password } = req.body;
-
-    try {
-      const user = await User.findOne({ email });
-      if (!user) return res.status(400).json({ message: 'Invalid email or password' });
-
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) return res.status(400).json({ message: 'Invalid email or password' });
-
-      const token = generateToken(user);
-      res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
-
-    } catch (err) {
-      console.error('Login error:', err.message);
-      res.status(500).json({ message: 'Server error during login' });
-    }
-  }
-);
-
-// @route   GET /api/auth/me
-router.get('/me', auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select('-password');
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    let profile = null;
-    if (user.role === 'caregiver') {
-      profile = await Caregiver.findOne({ user: user._id });
-    } else if (user.role === 'care seeker') {
-      profile = await CareSeeker.findOne({ user: user._id });
-    }
-
-    res.json({ user, profile });
-  } catch (err) {
-    console.error('Fetch /me error:', err.message);
-    res.status(500).json({ message: 'Error fetching user profile' });
-  }
-});
->>>>>>> 88c45fe332bfa7c7ce8907e33e16e2ac61c1473d
 
 module.exports = router;

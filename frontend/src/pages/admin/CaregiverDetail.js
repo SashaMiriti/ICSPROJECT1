@@ -12,7 +12,7 @@ const CaregiverDetail = () => {
   const [caregiver, setCaregiver] = useState(null);
 
   useEffect(() => {
-  axios.get(`/admin/caregiver/${id}`)
+  axios.get(`/api/admin/caregiver/${id}`)
     .then(res => {
       console.log("Full caregiver data:", res.data); // ← Add this line
       setCaregiver(res.data);
@@ -22,7 +22,7 @@ const CaregiverDetail = () => {
 
   const handleAction = async (action) => {
     try {
-      await axios.put(`/admin/${action}-caregiver/${id}`);
+      await axios.put(`/api/admin/${action}-caregiver/${id}`);
       navigate('/admin/pending-caregivers');
     } catch (err) {
       console.error(`Failed to ${action} caregiver`, err);

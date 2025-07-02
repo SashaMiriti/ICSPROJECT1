@@ -12,7 +12,7 @@ const PendingCaregiver = () => {
 
   useEffect(() => {
     axios
-      .get('/admin/pending-caregivers')
+      .get('/api/admin/pending-caregivers')
       .then(res => setPendingCaregivers(res.data))
       .catch(err => console.error('Error fetching pending caregivers:', err));
   }, []);

@@ -3,7 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const { check, validationResult } = require('express-validator');
 const NodeGeocoder = require('node-geocoder');
-
+const mongoose = require('mongoose');
 // Models
 const Caregiver = require('../models/Caregiver');
 const User = require('../models/User');
@@ -115,7 +115,21 @@ router.get('/profile', auth, async (req, res) => {
         res.status(500).json({ message: 'Server error while fetching caregiver profile' });
     }
 });
+// GET caregiver by user ID
+router.get('/user/:userId', async (req, res) => {
+  try {
 
+    const caregiver = await Caregiver.findOne({ user: req.params.userId }).populate('user', ['fullName', 'email']);
+    if (!caregiver) {
+      return res.status(404).json({ message: 'Caregiver not found' });
+    }
+
+    res.json(caregiver);
+  } catch (err) {
+    console.error('❌ Error fetching caregiver by user ID:', err);
+     res.status(500).json({ message: 'Server error while fetching caregiver by user ID', error: err.message });
+  }
+});
 // @route   GET /api/caregivers/:id
 // @desc    Get caregiver by ID
 // @access  Public
@@ -147,16 +161,10 @@ router.get('/:id', async (req, res) => {
         res.status(500).send('Server Error');
     }
 });
-
 // @route   PUT /api/caregivers/profile
 // @desc    Update caregiver profile
 // @access  Private
-router.put('/profile', [auth, [
-    check('bio', 'Bio is required').not().isEmpty(),
-    check('services', 'At least one service is required').isArray({ min: 1 }),
-    check('hourlyRate', 'Hourly rate must be a positive number').isFloat({ min: 0 }),
-    check('experienceYears', 'Experience years must be a positive number').isInt({ min: 0 })
-]], async (req, res) => {
+router.put('/profile', auth, async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
@@ -173,7 +181,6 @@ router.put('/profile', [auth, [
             services,
             hourlyRate,
             experienceYears,
-            availability,
             location
         } = req.body;
 
@@ -195,7 +202,6 @@ router.put('/profile', [auth, [
             services,
             hourlyRate,
             experienceYears,
-            availability: availability || [],
             location: location ? {
                 type: 'Point',
                 coordinates,
@@ -246,5 +252,95 @@ router.get('/bookings/upcoming', auth, async (req, res) => {
         res.status(500).send('Server Error');
     }
 });
+// @route   PUT /api/caregivers/schedule
+// @desc    Update caregiver schedule
+// @access  Private
+router.put('/schedule', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user || user.role !== 'caregiver') {
+            return res.status(403).json({ message: 'Not authorized as caregiver' });
+        }
 
+        const caregiver = await Caregiver.findOne({ user: user._id });
+        if (!caregiver) {
+            return res.status(404).json({ message: 'Caregiver not found' });
+        }
+
+        // Save to availability instead of schedule
+        caregiver.availability = {
+          days: req.body.days,
+          timeSlots: [{ startTime: req.body.time.startTime, endTime: req.body.time.endTime }]
+        };
+
+        await caregiver.save();
+
+        res.status(200).json({ success: true, message: 'Schedule updated' });
+    } catch (err) {
+        console.error('Error updating schedule:', err.message);
+        res.status(500).json({ message: 'Server error while updating schedule' });
+    }
+});
+// @route   PUT /api/caregivers/:id
+// @desc    Update full caregiver profile (first-time completion)
+// @access  Private
+router.put('/:id', auth, async (req, res) => {
+    try {
+        const caregiver = await Caregiver.findById(req.params.id);
+        if (!caregiver) {
+            return res.status(404).json({ message: 'Caregiver not found' });
+        }
+
+        // Optional: Ensure the logged-in user is updating their own profile
+        if (caregiver.user.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Not authorized to update this profile' });
+        }
+
+        // Update allowed fields
+        const allowedFields = [
+  'fullName',
+  'contactNumber',
+  'bio',
+  'experienceYears',
+  'specializationCategory',
+  'languagesSpoken',
+  'tribalLanguage',
+  'gender',
+  'culture',
+  'religion', 
+];
+console.log('🔍 Incoming caregiver update fields:', req.body);
+        allowedFields.forEach(field => {
+            if (req.body[field] !== undefined) {
+                caregiver[field] = req.body[field];
+            }
+        });
+
+        // Check if all required fields are present to set profileComplete
+        const requiredFields = [
+          'fullName',
+          'contactNumber',
+          'bio',
+          'experienceYears',
+          'specializationCategory',
+          'languagesSpoken',
+          'gender',
+          'culture',
+          'religion'
+        ];
+        const isComplete = requiredFields.every(field => {
+          const val = caregiver[field];
+          if (Array.isArray(val)) return val.length > 0;
+          return val !== undefined && val !== null && val !== '';
+        });
+        caregiver.profileComplete = isComplete;
+
+        await caregiver.save();
+        res.status(200).json({ success: true, caregiver });
+
+    } catch (err) {
+        console.error('❌ Error updating caregiver profile:', err);
+        res.status(500).json({ message: 'Server error while updating profile' });
+    }
+});
 module.exports = router;

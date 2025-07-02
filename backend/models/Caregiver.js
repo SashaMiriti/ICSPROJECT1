@@ -46,12 +46,40 @@ const CaregiverSchema = new mongoose.Schema({
         }
     },
 
-    hourlyRate: { type: Number },
+    // Already exists
     languagesSpoken: [{ type: String }],
-    gender: { type: String, enum: ['Male', 'Female', 'Other', 'Prefer not to say'] },
+    
+    // NEW: If 'Tribal' selected, specify which one
+    tribalLanguage: {
+  type: String,
+  enum: ['', 'Kikuyu', 'Luhya', 'Luo', 'Kamba', 'Kisii', 'Meru', 'Other'], // Add all tribal options you expect
+  default: ''
+},
+
+
+    gender: {
+        type: String,
+        enum: ['Male', 'Female', 'Other', 'Prefer not to say']
+    },
+
     bio: { type: String },
 
-    // ✅ NEW: Documents uploaded by caregiver
+    // ✅ NEW fields below
+    specializationCategory: {
+        type: String,
+        enum: ['Elderly Care', 'People with Disabilities', 'Both'],
+        default: ''
+    },
+    culture: { type: String, default: '' },
+    religion: { type: String, default: '' },
+
+    // ✅ Existing: Simple schedule field for UI input
+    schedule: {
+        days: { type: String, default: '' },
+        time: { type: String, default: '' }
+    },
+
+    // ✅ Existing: Documents uploaded by caregiver
     documents: {
         type: [{
             filename: String,
@@ -64,8 +92,14 @@ const CaregiverSchema = new mongoose.Schema({
         default: []
     },
 
-    // ✅ NEW: Admin must verify caregiver profile
+    // ✅ Existing: Admin must verify caregiver profile
     isVerified: {
+        type: Boolean,
+        default: false
+    },
+
+    // Add profileComplete flag
+    profileComplete: {
         type: Boolean,
         default: false
     }

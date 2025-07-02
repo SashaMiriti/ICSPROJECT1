@@ -1,157 +1,145 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-const mockSchedule = [
-  {
-    id: 1,
-    client: 'Sarah Johnson',
-    date: '2024-03-20',
-    startTime: '09:00',
-    endTime: '17:00',
-    service: 'Elderly Care',
-    status: 'confirmed',
-    location: '123 Main St, San Francisco, CA',
-  },
-  {
-    id: 2,
-    client: 'Michael Brown',
-    date: '2024-03-20',
-    startTime: '18:00',
-    endTime: '20:00',
-    service: 'Special Needs Care',
-    status: 'pending',
-    location: '456 Oak Ave, San Francisco, CA',
-  },
-  {
-    id: 3,
-    client: 'Emily Davis',
-    date: '2024-03-21',
-    startTime: '10:00',
-    endTime: '14:00',
-    service: 'Child Care',
-    status: 'confirmed',
-    location: '789 Pine St, San Francisco, CA',
-  },
+const daysOfWeek = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
 ];
 
-const statusStyles = {
-  confirmed: 'bg-green-50 text-green-700 ring-green-600/20',
-  pending: 'bg-yellow-50 text-yellow-700 ring-yellow-600/20',
-  cancelled: 'bg-red-50 text-red-700 ring-red-600/20',
-};
-
-function classNames(...classes) {
-  return classes.filter(Boolean).join(' ');
-}
-
 export default function Schedule() {
-  const [selectedDate, setSelectedDate] = useState('');
+  const { token } = useAuth();
+  const navigate = useNavigate();
+  const [selectedDays, setSelectedDays] = useState([]);
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('17:00');
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('');
 
-  const filteredSchedule = selectedDate
-    ? mockSchedule.filter((item) => item.date === selectedDate)
-    : mockSchedule;
+  useEffect(() => {
+    // Fetch current schedule
+    const fetchSchedule = async () => {
+      try {
+        const res = await axios.get('http://localhost:5000/api/caregivers/profile', {
+          headers: { 'x-auth-token': token },
+        });
+        if (res.data.availability) {
+          setSelectedDays(res.data.availability.days || []);
+          if (res.data.availability.timeSlots && res.data.availability.timeSlots[0]) {
+            setStartTime(res.data.availability.timeSlots[0].startTime || '09:00');
+            setEndTime(res.data.availability.timeSlots[0].endTime || '17:00');
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching schedule:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSchedule();
+  }, [token]);
+
+  const handleDayChange = (day) => {
+    setSelectedDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    );
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setMessage('');
+    try {
+      await axios.put(
+        'http://localhost:5000/api/caregivers/schedule',
+        {
+          days: selectedDays,
+          time: { startTime, endTime },
+        },
+        {
+          headers: { 'x-auth-token': token },
+        }
+      );
+      setMessage('Schedule saved successfully!');
+    } catch (err) {
+      setMessage('Error saving schedule.');
+      console.error('Error saving schedule:', err);
+    }
+  };
+
+  if (loading) return <div>Loading schedule...</div>;
 
   return (
-    <div className="py-6">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="sm:flex sm:items-center">
-          <div className="sm:flex-auto">
-            <h1 className="text-2xl font-semibold text-gray-900">My Schedule</h1>
-            <p className="mt-2 text-sm text-gray-700">
-              View and manage your upcoming care services.
-            </p>
-          </div>
-          <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="block rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-            />
-          </div>
-        </div>
-
-        <div className="mt-8 flow-root">
-          <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-            <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                <table className="min-w-full divide-y divide-gray-300">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th
-                        scope="col"
-                        className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
-                      >
-                        Client
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                      >
-                        Date
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                      >
-                        Time
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                      >
-                        Service
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                      >
-                        Location
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                      >
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 bg-white">
-                    {filteredSchedule.map((item) => (
-                      <tr key={item.id}>
-                        <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                          {item.client}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {item.date}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {item.startTime} - {item.endTime}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {item.service}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {item.location}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm">
-                          <span
-                            className={classNames(
-                              statusStyles[item.status],
-                              'inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset'
-                            )}
-                          >
-                            {item.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+    <div className="max-w-lg mx-auto p-6 bg-white shadow rounded-lg mt-6">
+      <h2 className="text-2xl font-semibold mb-4">My Weekly Availability</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block mb-2 font-medium">Select Available Days:</label>
+          <div className="flex flex-wrap gap-3">
+            {daysOfWeek.map((day) => (
+              <label key={day} className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={selectedDays.includes(day)}
+                  onChange={() => handleDayChange(day)}
+                />
+                {day}
+              </label>
+            ))}
           </div>
         </div>
+        <div className="flex gap-4 items-center">
+          <label className="font-medium">Start Time:</label>
+          <input
+            type="time"
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+            className="border p-1 rounded"
+          />
+          <label className="font-medium">End Time:</label>
+          <input
+            type="time"
+            value={endTime}
+            onChange={(e) => setEndTime(e.target.value)}
+            className="border p-1 rounded"
+          />
+        </div>
+        <button
+          type="submit"
+          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-semibold"
+        >
+          Save Schedule
+        </button>
+        {message && <div className="mt-2 text-center text-green-600">{message}</div>}
+        {message && (
+          <button
+            onClick={() => navigate('/caregiver/dashboard')}
+            className="fixed left-6 bottom-6 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded shadow-lg z-50"
+            type="button"
+          >
+            ← Back to Dashboard
+          </button>
+        )}
+      </form>
+      <div className="mt-6">
+        <h3 className="text-lg font-semibold mb-2">Current Schedule:</h3>
+        {selectedDays.length === 0 ? (
+          <p className="text-gray-500">No days selected.</p>
+        ) : (
+          <ul className="list-disc ml-6">
+            {selectedDays.map((day) => (
+              <li key={day}>
+                {day}: {startTime} - {endTime}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );
-} 
+}

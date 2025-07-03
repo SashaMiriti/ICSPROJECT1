@@ -119,14 +119,17 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       const message = err.response?.data?.message;
 
-      // ✅ Handle unapproved caregiver redirection
-      if (
-        role === 'caregiver' &&
-        err.response?.data?.message === 'Caregiver not yet approved by admin' &&
-        err.response?.data?.user?.username
-      ) {
-        const unapprovedName = encodeURIComponent(err.response.data.user.username);
-        return { success: false, redirectTo: `/caregiver-confirmation?name=${unapprovedName}` };
+      // ✅ Handle caregiver status issues
+      if (role === 'caregiver' && err.response?.data?.user?.username) {
+        const username = encodeURIComponent(err.response.data.user.username);
+        
+        if (err.response?.data?.message === 'Caregiver not yet approved by admin') {
+          return { success: false, redirectTo: `/caregiver-confirmation?name=${username}` };
+        }
+        
+        if (err.response?.data?.message === 'Your caregiver application has been rejected. Please contact support if you believe this was a mistake.') {
+          return { success: false, redirectTo: `/caregiver-confirmation?name=${username}&status=rejected` };
+        }
       }
 
       console.error('Login error:', err.response?.data || err.message);

@@ -63,9 +63,17 @@ router.get('/caregiver/:id', async (req, res) => {
 // ✅ Approve caregiver and send email
 router.put('/approve-caregiver/:id', async (req, res) => {
   try {
+    // Update User status to approved
     const caregiver = await User.findByIdAndUpdate(
       req.params.id,
       { status: 'approved' },
+      { new: true }
+    );
+
+    // Update Caregiver isVerified to true
+    await Caregiver.findOneAndUpdate(
+      { user: req.params.id },
+      { isVerified: true },
       { new: true }
     );
 
@@ -93,9 +101,17 @@ router.put('/approve-caregiver/:id', async (req, res) => {
 // ✅ Reject caregiver and send email
 router.put('/reject-caregiver/:id', async (req, res) => {
   try {
+    // Update User status to rejected
     const caregiver = await User.findByIdAndUpdate(
       req.params.id,
       { status: 'rejected' },
+      { new: true }
+    );
+
+    // Update Caregiver isVerified to false
+    await Caregiver.findOneAndUpdate(
+      { user: req.params.id },
+      { isVerified: false },
       { new: true }
     );
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -12,11 +12,7 @@ export default function CareSeekerDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchCareSeekerDetails();
-  }, [fetchCareSeekerDetails]);
-
-  const fetchCareSeekerDetails = async () => {
+  const fetchCareSeekerDetails = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
@@ -51,7 +47,11 @@ export default function CareSeekerDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate]);
+
+  useEffect(() => {
+    fetchCareSeekerDetails();
+  }, [fetchCareSeekerDetails]);
 
   const handleDeleteCareSeeker = async () => {
     if (!window.confirm(`Are you sure you want to delete ${careSeeker?.fullName}? This action cannot be undone and will also delete all associated bookings.`)) {

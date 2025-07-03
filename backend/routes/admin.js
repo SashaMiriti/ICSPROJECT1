@@ -63,18 +63,25 @@ router.get('/caregiver/:id', async (req, res) => {
 // ✅ Approve caregiver and send email
 router.put('/approve-caregiver/:id', async (req, res) => {
   try {
-    const caregiver = await User.findByIdAndUpdate(
+    // Approve the user (set status: 'approved')
+    const caregiverUser = await User.findByIdAndUpdate(
       req.params.id,
       { status: 'approved' },
       { new: true }
     );
 
-    if (caregiver && caregiver.email) {
+    // Also set isVerified: true on the Caregiver profile
+    await Caregiver.findOneAndUpdate(
+      { user: req.params.id },
+      { isVerified: true }
+    );
+
+    if (caregiverUser && caregiverUser.email) {
       await sendEmail({
-        to: caregiver.email,
+        to: caregiverUser.email,
         subject: 'TogetherCare Approval Notification ✅',
         html: `
-          <p>Hello <strong>${caregiver.username}</strong>,</p>
+          <p>Hello <strong>${caregiverUser.username}</strong>,</p>
           <p>Your caregiver application has been <b style="color:green">approved</b>!</p>
           <p>You can now <a href="http://localhost:3000/login">log in</a> to your TogetherCare account using your credentials.</p>
           <p>Thank you for joining us!</p>
@@ -83,7 +90,7 @@ router.put('/approve-caregiver/:id', async (req, res) => {
       });
     }
 
-    res.json({ message: 'Caregiver approved and notified via email ✅', caregiver });
+    res.json({ message: 'Caregiver approved and notified via email ✅', caregiver: caregiverUser });
   } catch (error) {
     console.error('Approve error:', error);
     res.status(500).json({ message: 'Server error' });

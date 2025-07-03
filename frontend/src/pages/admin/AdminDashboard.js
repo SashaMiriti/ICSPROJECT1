@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -20,11 +20,7 @@ export default function AdminDashboard() {
   const [careSeekers, setCareSeekers] = useState([]);
   const [showCareSeekers, setShowCareSeekers] = useState(false);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
@@ -58,7 +54,11 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const handleDeleteCareSeeker = async (careSeekerId, careSeekerName) => {
     if (!window.confirm(`Are you sure you want to delete ${careSeekerName}? This action cannot be undone.`)) {

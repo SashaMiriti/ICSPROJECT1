@@ -27,7 +27,7 @@ router.post('/', [auth, [
 
     try {
         const user = await User.findById(req.user.id);
-        if (user.role !== 'care seeker') {
+        if (user.role !== 'careSeeker' && user.role !== 'care seeker') {
             return res.status(403).json({ message: 'Not authorized as care seeker' });
         }
 
@@ -57,12 +57,14 @@ router.post('/', [auth, [
         }
 
         // Get caregiver and verify availability
-        const caregiver = await Caregiver.findById(caregiverId);
+        const caregiver = await Caregiver.findById(caregiverId).populate('user');
         if (!caregiver) {
             return res.status(404).json({ message: 'Caregiver not found' });
         }
 
-        if (!caregiver.isVerified) {
+        // Consider verified if either isVerified or user.status === 'approved'
+        const isVerified = caregiver.isVerified === true || (caregiver.user && caregiver.user.status === 'approved');
+        if (!isVerified) {
             return res.status(400).json({ message: 'Caregiver is not verified' });
         }
 

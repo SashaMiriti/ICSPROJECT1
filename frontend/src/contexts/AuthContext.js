@@ -224,17 +224,13 @@ export const AuthProvider = ({ children }) => {
         user,
         userRole,
         token,
-
         isAuthenticated,
-
         loading,
-
         login,
         register,
         logout,
         updateProfile,
         fetchUser,
-        isAuthenticated,
         setUser,
       }}
     >

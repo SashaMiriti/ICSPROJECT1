@@ -246,10 +246,9 @@ const response = await axios.put(
             <div>
               <label className="block mb-1">Specialization</label>
               <Field as="select" name="specializationCategory" className="w-full border p-2 rounded">
-                <option value="" disabled hidden>-- Choose Specialization --</option>
+                <option value="">Select Specialization Category</option>
                 <option value="Elderly Care">Elderly Care</option>
-                <option value="People with Disabilities">People with Disabilities</option>
-                <option value="Both">Both</option>
+                <option value="Persons with Disabilities">Persons with Disabilities</option>
               </Field>
               <ErrorMessage name="specializationCategory" component="div" className="text-red-500 text-sm" />
             </div>

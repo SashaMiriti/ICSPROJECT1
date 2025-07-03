@@ -268,10 +268,9 @@ export default function Register() {
                   <div>
                     <label htmlFor="specializationCategory" className="block text-sm font-medium text-gray-700 mb-1">Specialization Category</label>
                     <Field as="select" name="specializationCategory" className="w-full px-4 py-2 border rounded-md shadow-sm">
-                      <option value="" disabled>Select category</option>
+                      <option value="">Select Specialization Category</option>
                       <option value="Elderly Care">Elderly Care</option>
-                      <option value="People with Disabilities">People with Disabilities</option>
-                      <option value="Both">Both</option>
+                      <option value="Persons with Disabilities">Persons with Disabilities</option>
                     </Field>
                     <ErrorMessage name="specializationCategory" component="p" className="text-sm text-red-600 mt-1" />
                   </div>

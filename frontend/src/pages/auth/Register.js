@@ -10,6 +10,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'; /
 import 'leaflet/dist/leaflet.css'; // Leaflet's core CSS for map styling
 import L from 'leaflet'; // Leaflet library for map functionalities
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'; // Icons for toggling password visibility
+import toast from 'react-hot-toast';
 
 // Define a custom marker icon for the Leaflet map
 const markerIcon = new L.Icon({

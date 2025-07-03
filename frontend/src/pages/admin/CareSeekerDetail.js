@@ -14,7 +14,7 @@ export default function CareSeekerDetail() {
 
   useEffect(() => {
     fetchCareSeekerDetails();
-  }, [id]);
+  }, [fetchCareSeekerDetails]);
 
   const fetchCareSeekerDetails = async () => {
     try {

@@ -17,7 +17,7 @@ router.post('/', [auth, [
     check('caregiverId', 'Caregiver ID is required').not().isEmpty(),
     check('startTime', 'Start time is required').not().isEmpty(),
     check('endTime', 'End time is required').not().isEmpty(),
-    check('service', 'Service type is required').isIn(['elderly care', 'child care', 'disability care', 'medical care', 'companionship']),
+    check('service', 'Service type is required').isIn(['Elderly Care', 'Persons with Disabilities']),
     check('location.address', 'Service location address is required').not().isEmpty()
 ]], async (req, res) => {
     const errors = validationResult(req);
@@ -69,7 +69,7 @@ router.post('/', [auth, [
         }
 
         // Check if caregiver provides this service
-        if (!caregiver.servicesOffered.includes(service)) {
+        if (caregiver.specializationCategory !== service) {
             return res.status(400).json({ message: 'Caregiver does not provide this service' });
         }
 
@@ -96,8 +96,11 @@ router.post('/', [auth, [
         }
 
         // Calculate price based on duration and hourly rate
-        const duration = moment.duration(end.diff(start)).asHours();
-        const price = duration * caregiver.hourlyRate;
+        let price = 0;
+        if (typeof caregiver.hourlyRate === 'number' && !isNaN(caregiver.hourlyRate)) {
+            const duration = moment.duration(end.diff(start)).asHours();
+            price = duration * caregiver.hourlyRate;
+        }
 
         const booking = new Booking({
             caregiver: caregiverId,
@@ -107,7 +110,8 @@ router.post('/', [auth, [
             service,
             notes,
             location,
-            price: Math.round(price * 100) / 100 // Round to 2 decimal places
+            price: Math.round(price * 100) / 100, // Round to 2 decimal places
+            priceType: req.body.priceType || 'Fixed',
         });
 
         await booking.save();

@@ -31,7 +31,7 @@ const BookingSchema = new mongoose.Schema({
     service: {
         type: String,
         required: true,
-        enum: ['elderly care', 'child care', 'disability care', 'medical care', 'companionship']
+        enum: ['Elderly Care', 'Persons with Disabilities']
     },
     notes: {
         type: String,
@@ -49,7 +49,13 @@ const BookingSchema = new mongoose.Schema({
     },
     price: {
         type: Number,
-        required: true
+        required: false,
+        default: 0
+    },
+    priceType: {
+        type: String,
+        enum: ['Fixed', 'Bargainable'],
+        default: 'Fixed'
     }
 }, {
     timestamps: true

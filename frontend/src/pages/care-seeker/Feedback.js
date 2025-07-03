@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -37,7 +37,6 @@ function StarRating({ rating, onRatingChange, readonly = false }) {
 export default function Feedback() {
   const { bookingId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [booking, setBooking] = useState(null);
@@ -46,10 +45,6 @@ export default function Feedback() {
     rating: 0,
     comment: ''
   });
-
-  useEffect(() => {
-    fetchBookingDetails();
-  }, [bookingId]);
 
   const fetchBookingDetails = async () => {
     try {
@@ -108,6 +103,11 @@ export default function Feedback() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchBookingDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleRatingChange = (rating) => {
     setFormData(prev => ({ ...prev, rating }));

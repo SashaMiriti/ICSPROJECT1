@@ -214,16 +214,24 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const isAuthenticated = !!user;
+
+  const isAuthenticated = !!(user && token);
+
+  
   console.log('🔐 AuthContext provider value:', { user, userRole, token, isAuthenticated });
   
+
   return (
     <AuthContext.Provider
       value={{
         user,
         userRole,
         token,
+
+        isAuthenticated,
+
         loading,
+
         login,
         register,
         logout,

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import toast from 'react-hot-toast';
 
 function StarRating({ rating }) {
   return (
@@ -38,7 +37,7 @@ export default function CaregiverProfile() {
 
   useEffect(() => {
     fetchCaregiverProfile();
-  }, [id]);
+  }, [fetchCaregiverProfile]);
 
   const fetchCaregiverProfile = async () => {
     try {

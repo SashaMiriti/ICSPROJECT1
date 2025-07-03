@@ -11,18 +11,37 @@ export default function CaregiverDashboard() {
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [userTimeout, setUserTimeout] = useState(false);
   const dropdownRef = useRef(null);
 
+  // Debug logging
+  console.log('🔍 CaregiverDashboard Debug:', { user, token, loading, error, userTimeout });
+  console.log('🎯 Dashboard rendering with user:', user);
+
+  // Add a timeout to avoid infinite loading if user is never set
   useEffect(() => {
+    if (!user) {
+      const timeout = setTimeout(() => setUserTimeout(true), 4000);
+      return () => clearTimeout(timeout);
+    } else {
+      setUserTimeout(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    console.log('🔄 Dashboard useEffect triggered:', { user, token });
     const fetchProfile = async () => {
       try {
+        console.log('📡 Fetching caregiver profile...');
         const res = await axios.get(`http://localhost:5000/api/caregivers/profile`, {
           headers: {
             'x-auth-token': token,
           },
         });
+        console.log('✅ Profile fetched:', res.data);
         setCaregiverProfile(res.data);
       } catch (err) {
+        console.error('❌ Error fetching profile:', err);
         setError('Could not load caregiver profile. Please try again later.');
       } finally {
         setLoading(false);
@@ -30,6 +49,10 @@ export default function CaregiverDashboard() {
     };
     if (user?.role === 'caregiver') {
       fetchProfile();
+    } else if (user && user.role !== 'caregiver') {
+      console.log('🚫 User is not a caregiver:', user.role);
+      setError('You are not authorized to view this page.');
+      setLoading(false);
     }
   }, [user, token]);
 
@@ -57,6 +80,14 @@ export default function CaregiverDashboard() {
     if (logout) logout();
     navigate('/login');
   };
+
+  if (userTimeout && !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-green-50">
+        <div className="text-center text-red-500">Unable to load user information. Please <button className="underline" onClick={() => navigate('/login')}>log in</button> again.</div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

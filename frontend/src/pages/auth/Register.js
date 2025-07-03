@@ -142,11 +142,15 @@ export default function Register() {
       }
       const result = await register(formData, values.role);
       if (result.success) {
-        navigate(
-          result.role === 'caregiver'
-            ? `/caregiver-confirmation?name=${encodeURIComponent(values.username)}`
-            : '/care-seeker/profile'
-        );
+        if (result.role === 'caregiver') {
+          if (result.profileComplete && result.isVerified) {
+            navigate('/caregiver/dashboard');
+          } else {
+            navigate(`/caregiver-confirmation?name=${encodeURIComponent(values.username)}`);
+          }
+        } else {
+          navigate('/care-seeker/profile');
+        }
       } else {
         setFormError(result.message || 'Registration failed');
       }

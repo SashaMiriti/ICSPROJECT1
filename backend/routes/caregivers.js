@@ -248,7 +248,10 @@ router.get('/bookings/upcoming', auth, async (req, res) => {
             startTime: { $gt: new Date() },
             status: { $in: ['pending', 'accepted'] }
         })
-        .populate('careSeeker', 'user')
+        .populate({
+          path: 'careSeeker',
+          populate: { path: 'user', select: 'name email' }
+        })
         .populate('service')
         .sort({ startTime: 1 });
 

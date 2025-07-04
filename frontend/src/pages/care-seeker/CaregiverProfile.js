@@ -50,7 +50,7 @@ export default function CaregiverProfile() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [id]);
 
   useEffect(() => {
     fetchCaregiverProfile();
@@ -104,11 +104,11 @@ export default function CaregiverProfile() {
           <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-8">
             <div className="flex items-center">
               <div className="h-20 w-20 bg-white rounded-full flex items-center justify-center text-3xl font-bold text-primary-700">
-                {caregiver.user?.name?.[0] || 'C'}
+                {(caregiver.fullName && caregiver.fullName[0]) || caregiver.user?.name?.[0] || 'C'}
               </div>
               <div className="ml-6">
                 <h1 className="text-3xl font-bold text-white">
-                  {caregiver.user?.name || 'Caregiver'}
+                  {caregiver.fullName || caregiver.user?.name || 'Caregiver'}
                 </h1>
                 <p className="text-primary-100 mt-1">
                   {caregiver.experienceYears || 0} years of experience

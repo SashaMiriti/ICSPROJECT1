@@ -233,6 +233,7 @@ export const AuthProvider = ({ children }) => {
         user,
         userRole,
         token,
+        isAuthenticated,
         loading,
         loadingUser,
         login,
@@ -240,7 +241,6 @@ export const AuthProvider = ({ children }) => {
         logout,
         updateProfile,
         fetchUser,
-        isAuthenticated,
         setUser,
       }}
     >

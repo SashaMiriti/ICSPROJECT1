@@ -30,37 +30,41 @@ router.get('/', async (req, res) => {
             sortBy = 'rating'
         } = req.query;
 
-        let query = { isVerified: true };
+        // Find all caregivers where either isVerified is true OR user.status is 'approved'
+        const caregivers = await Caregiver.find()
+            .populate('user', ['name', 'email', 'status'])
+            .lean();
 
-        if (services) query.services = { $in: services.split(',') };
-        if (maxHourlyRate) query.hourlyRate = { $lte: parseFloat(maxHourlyRate) };
-        if (minExperience) query.experienceYears = { $gte: parseInt(minExperience) };
+        // Filter for verified caregivers (either isVerified or user.status === 'approved')
+        const verifiedCaregivers = caregivers.filter(cg => cg.isVerified === true || (cg.user && cg.user.status === 'approved'));
+
+        let filtered = verifiedCaregivers;
+        if (services) filtered = filtered.filter(cg => cg.services && cg.services.includes(services));
+        if (maxHourlyRate) filtered = filtered.filter(cg => cg.hourlyRate && cg.hourlyRate <= parseFloat(maxHourlyRate));
+        if (minExperience) filtered = filtered.filter(cg => cg.experienceYears && cg.experienceYears >= parseInt(minExperience));
 
         if (location) {
             try {
                 const geoResults = await geocoder.geocode(location);
                 if (geoResults.length > 0) {
                     const { latitude, longitude } = geoResults[0];
-                    query.location = {
-                        $near: {
-                            $geometry: {
-                                type: 'Point',
-                                coordinates: [longitude, latitude]
-                            },
-                            $maxDistance: radius * 1000
+                    filtered = filtered.filter(cg => {
+                        if (cg.location) {
+                            const distance = Math.sqrt(
+                                Math.pow(cg.location.coordinates[0] - longitude, 2) +
+                                Math.pow(cg.location.coordinates[1] - latitude, 2)
+                            );
+                            return distance <= radius * 1000;
                         }
-                    };
+                        return true;
+                    });
                 }
             } catch (error) {
                 console.error('Geocoding error:', error);
             }
         }
 
-        let caregivers = await Caregiver.find(query)
-            .populate('user', ['name', 'email', 'phone'])
-            .lean();
-
-        for (let caregiver of caregivers) {
+        for (let caregiver of filtered) {
             const reviews = await Review.find({ caregiver: caregiver._id });
             if (reviews.length > 0) {
                 const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
@@ -73,14 +77,14 @@ router.get('/', async (req, res) => {
         }
 
         if (sortBy === 'rating') {
-            caregivers.sort((a, b) => b.averageRating - a.averageRating);
+            filtered.sort((a, b) => b.averageRating - a.averageRating);
         } else if (sortBy === 'experience') {
-            caregivers.sort((a, b) => b.experienceYears - a.experienceYears);
+            filtered.sort((a, b) => b.experienceYears - a.experienceYears);
         } else if (sortBy === 'price') {
-            caregivers.sort((a, b) => a.hourlyRate - b.hourlyRate);
+            filtered.sort((a, b) => a.hourlyRate - b.hourlyRate);
         }
 
-        res.json(caregivers);
+        res.json(filtered);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
@@ -136,12 +140,14 @@ router.get('/user/:userId', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const caregiver = await Caregiver.findById(req.params.id)
-            .populate('user', ['name', 'email', 'phone']);
+            .populate('user', ['name', 'email', 'status']);
 
         if (!caregiver) {
             return res.status(404).json({ message: 'Caregiver not found' });
         }
 
+        // Consider verified if either isVerified or user.status === 'approved'
+        const isVerified = caregiver.isVerified === true || (caregiver.user && caregiver.user.status === 'approved');
         const reviews = await Review.find({ caregiver: caregiver._id })
             .populate('careSeeker', 'user')
             .populate('booking', 'service startTime');
@@ -152,7 +158,7 @@ router.get('/:id', async (req, res) => {
             caregiver.reviewCount = reviews.length;
         }
 
-        res.json({ caregiver, reviews });
+        res.json({ caregiver: { ...caregiver.toObject(), isVerified }, reviews });
     } catch (err) {
         console.error(err.message);
         if (err.kind === 'ObjectId') {

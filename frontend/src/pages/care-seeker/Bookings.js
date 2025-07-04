@@ -28,6 +28,7 @@ export default function Bookings() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [openDetails, setOpenDetails] = useState({});
 
   useEffect(() => {
     // Show success message if coming from booking form
@@ -100,6 +101,16 @@ export default function Bookings() {
     return `${hours}h ${minutes}m`;
   };
 
+  // Helper to get the best available caregiver name
+  const getCaregiverName = (booking) => {
+    return (
+      booking.caregiver?.user?.name ||
+      booking.caregiver?.fullName ||
+      booking.caregiver?.user?.username ||
+      'Unknown Caregiver'
+    );
+  };
+
   if (loading) {
     return (
       <div className="py-6">
@@ -169,119 +180,107 @@ export default function Bookings() {
             </div>
           </div>
         ) : (
-          <div className="mt-8 flow-root">
-            <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-              <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                  <table className="min-w-full divide-y divide-gray-300">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
-                          Caregiver
-                        </th>
-                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                          Service
-                        </th>
-                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                          Date & Time
-                        </th>
-                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                          Duration
-                        </th>
-                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                          Price
-                        </th>
-                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                          Status
-                        </th>
-                        <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                          <span className="sr-only">Actions</span>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                      {bookings.map((booking) => {
-                        const startDateTime = formatDateTime(booking.startTime);
-                        const endDateTime = formatDateTime(booking.endTime);
-                        const duration = calculateDuration(booking.startTime, booking.endTime);
-                        
-                        return (
-                          <tr key={booking._id}>
-                            <td className="whitespace-nowrap py-4 pl-4 pr-3 sm:pl-6">
-                              <div className="flex items-center">
-                                <div className="h-10 w-10 flex-shrink-0">
-                                  <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                                    <span className="text-sm font-medium text-gray-700">
-                                      {booking.caregiver?.user?.name?.[0] || 'C'}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="ml-4">
-                                  <div className="text-sm font-medium text-gray-900">
-                                    {booking.caregiver?.user?.name || 'Unknown Caregiver'}
-                                  </div>
-                                  <div className="text-sm text-gray-500">
-                                    {booking.caregiver?.user?.phone || 'No phone'}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                              {booking.service}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                              <div>
-                                <div>{startDateTime.date}</div>
-                                <div className="text-gray-500">
-                                  {startDateTime.time} - {endDateTime.time}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                              {duration}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                              Ksh {booking.price}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">
-                              <span
-                                className={classNames(
-                                  statusStyles[booking.status],
-                                  'inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset'
-                                )}
-                              >
-                                {statusLabels[booking.status]}
-                              </span>
-                            </td>
-                            <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                              {booking.status === 'pending' && (
-                                <button
-                                  onClick={() => handleCancelBooking(booking._id)}
-                                  className="text-red-600 hover:text-red-900"
-                                >
-                                  Cancel
-                                </button>
-                              )}
-                              {booking.status === 'accepted' && (
-                                <span className="text-green-600">Confirmed</span>
-                              )}
-                              {booking.status === 'completed' && (
-                                <Link
-                                  to={`/care-seeker/feedback/${booking._id}`}
-                                  className="text-primary-600 hover:text-primary-900"
-                                >
-                                  Leave Review
-                                </Link>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {bookings.map((booking) => {
+              const startDateTime = formatDateTime(booking.startTime);
+              const endDateTime = formatDateTime(booking.endTime);
+              const duration = calculateDuration(booking.startTime, booking.endTime);
+              const caregiver = booking.caregiver;
+              const user = caregiver?.user || {};
+              const isOpen = openDetails[booking._id];
+              return (
+                <div key={booking._id} className="bg-white rounded-lg shadow p-6 flex flex-col justify-between">
+                  {/* Booking Details */}
+                  <div>
+                    <div className="mb-4">
+                      <div className="flex items-center">
+                        <div className="h-12 w-12 rounded-full bg-gray-300 flex items-center justify-center text-lg font-bold text-gray-700">
+                          {getCaregiverName(booking)[0]}
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-lg font-extrabold text-gray-900">
+                            {getCaregiverName(booking)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mb-2">
+                      <span className="font-medium text-gray-700">Service:</span> {booking.service}
+                    </div>
+                    <div className="mb-2">
+                      <span className="font-medium text-gray-700">Date:</span> {startDateTime.date}
+                    </div>
+                    <div className="mb-2">
+                      <span className="font-medium text-gray-700">Time:</span> {startDateTime.time} - {endDateTime.time}
+                    </div>
+                    <div className="mb-2">
+                      <span className="font-medium text-gray-700">Duration:</span> {duration}
+                    </div>
+                    <div className="mb-2">
+                      <span className="font-medium text-gray-700">Price:</span> <span className="text-primary-700 font-bold">Ksh {booking.price}</span>
+                    </div>
+                    <div className="mb-2">
+                      <span className="font-medium text-gray-700">Status:</span> <span className={classNames(statusStyles[booking.status], 'inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ml-1')}>{statusLabels[booking.status]}</span>
+                    </div>
+                  </div>
+                  {/* Toggle Caregiver Details */}
+                  <button
+                    className="mt-4 text-primary-700 font-semibold underline focus:outline-none"
+                    onClick={() => setOpenDetails((prev) => ({ ...prev, [booking._id]: !isOpen }))}
+                  >
+                    {isOpen ? 'Hide Caregiver Details' : 'View Caregiver Details'}
+                  </button>
+                  {isOpen && (
+                    <div className="mt-4 border-t pt-4">
+                      <div className="mb-2">
+                        <span className="font-medium text-gray-700">Email:</span> <span className="text-primary-700">{user.email || 'No email'}</span>
+                      </div>
+                      <div className="mb-2">
+                        <span className="font-medium text-gray-700">Phone:</span> <span className="text-primary-700">{user.phone || 'No phone'}</span>
+                      </div>
+                      {caregiver?.bio && (
+                        <div className="mb-2">
+                          <span className="font-medium text-gray-700">Bio:</span> {caregiver.bio}
+                        </div>
+                      )}
+                      {caregiver?.experienceYears && (
+                        <div className="mb-2">
+                          <span className="font-medium text-gray-700">Experience:</span> {caregiver.experienceYears} years
+                        </div>
+                      )}
+                      {caregiver?.qualifications && caregiver.qualifications.length > 0 && (
+                        <div className="mb-2">
+                          <span className="font-medium text-gray-700">Qualifications:</span> {caregiver.qualifications.join(', ')}
+                        </div>
+                      )}
+                      {/* Add more caregiver details as needed */}
+                    </div>
+                  )}
+                  {/* Actions */}
+                  <div className="mt-4 flex space-x-2">
+                    {booking.status === 'pending' && (
+                      <button
+                        onClick={() => handleCancelBooking(booking._id)}
+                        className="text-red-600 hover:text-red-900 font-medium"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    {booking.status === 'accepted' && (
+                      <span className="text-green-600 font-medium">Confirmed</span>
+                    )}
+                    {booking.status === 'completed' && (
+                      <Link
+                        to={`/care-seeker/feedback/${booking._id}`}
+                        className="text-primary-600 hover:text-primary-900 font-medium"
+                      >
+                        Leave Review
+                      </Link>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
         )}
       </div>

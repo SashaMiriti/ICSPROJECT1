@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/layout/Layout';
+import Navbar from './components/layout/Navbar';
 
 // Auth Pages
 import Login from './pages/auth/Login';
@@ -79,6 +80,7 @@ function App() {
             },
           }}
         />
+        <Navbar />
         <Routes>
           <Route path="/caregiver-confirmation" element={<CaregiverConfirmation />} />
           <Route path="/caregiver/complete-profile" element={<ProtectedRoute allowedRoles={['caregiver']}><CaregiverProfileCompletionForm /></ProtectedRoute>} />

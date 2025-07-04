@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-hot-toast';
 
 function StarRating({ rating }) {
   return (
@@ -35,30 +36,25 @@ export default function CaregiverProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchCaregiverProfile();
-  }, [fetchCaregiverProfile]);
-
-  const fetchCaregiverProfile = async () => {
+  const fetchCaregiverProfile = useCallback(async () => {
     try {
       setLoading(true);
-      
-      // Fetch caregiver details
-      const caregiverResponse = await axios.get(`http://localhost:5000/api/caregivers/${id}`);
-      setCaregiver(caregiverResponse.data.caregiver);
-      setReviews(caregiverResponse.data.reviews || []);
-
-    } catch (err) {
-      console.error('Error fetching caregiver profile:', err);
-      if (err.response?.status === 404) {
-        setError('Caregiver not found');
-      } else {
-        setError('Failed to fetch caregiver profile');
-      }
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`/api/caregivers/profile`, {
+        headers: { 'x-auth-token': token }
+      });
+      setCaregiver(response.data);
+    } catch (error) {
+      console.error('Error fetching caregiver profile:', error);
+      toast.error('Failed to load caregiver profile');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchCaregiverProfile();
+  }, [fetchCaregiverProfile]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);

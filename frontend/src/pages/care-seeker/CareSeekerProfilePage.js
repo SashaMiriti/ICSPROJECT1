@@ -362,16 +362,6 @@ const CareSeekerProfilePage = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
                                     <input type="text" name="address" value={profile.location.address || ''} onChange={handleChange} required placeholder="e.g., Westlands, Nairobi" className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" readOnly={!showLocationPicker} />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4 mt-2">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-                                        <input type="number" step="any" name="latitude" value={profile.location.latitude || (profile.location.coordinates[1] || '')} onChange={handleChange} placeholder="e.g., -1.2921" className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" readOnly={!showLocationPicker} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-                                        <input type="number" step="any" name="longitude" value={profile.location.longitude || (profile.location.coordinates[0] || '')} onChange={handleChange} placeholder="e.g., 36.8219" className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" readOnly={!showLocationPicker} />
-                                    </div>
-                                </div>
                                 {!showLocationPicker && (
                                     <button type="button" className="mt-4 bg-blue-500 text-white px-4 py-2 rounded" onClick={() => setShowLocationPicker(true)}>
                                         Update Location
@@ -536,16 +526,6 @@ const CareSeekerProfilePage = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
                                     <input type="text" name="address" value={profile.location.address || ''} onChange={handleChange} required placeholder="e.g., Westlands, Nairobi" className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" readOnly={!showLocationPicker} />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4 mt-2">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-                                        <input type="number" step="any" name="latitude" value={profile.location.latitude || (profile.location.coordinates[1] || '')} onChange={handleChange} placeholder="e.g., -1.2921" className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" readOnly={!showLocationPicker} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-                                        <input type="number" step="any" name="longitude" value={profile.location.longitude || (profile.location.coordinates[0] || '')} onChange={handleChange} placeholder="e.g., 36.8219" className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" readOnly={!showLocationPicker} />
-                                    </div>
                                 </div>
                                 {!showLocationPicker && (
                                     <button type="button" className="mt-4 bg-blue-500 text-white px-4 py-2 rounded" onClick={() => setShowLocationPicker(true)}>

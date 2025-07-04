@@ -69,7 +69,7 @@ const CaregiverSchema = new mongoose.Schema({
     // ✅ NEW fields below
     specializationCategory: {
         type: String,
-        enum: ['Elderly Care', 'People with Disabilities', 'Both'],
+        enum: ['Elderly Care', 'Persons with Disabilities'],
         default: ''
     },
     culture: { type: String, default: '' },

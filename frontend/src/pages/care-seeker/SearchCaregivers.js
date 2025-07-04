@@ -38,7 +38,7 @@ export default function SearchCaregivers() {
   });
 
   const handleViewProfile = (id) => {
-    navigate(`/care-seeker/caregiver-profile/${id}`);
+    navigate(`/care-seeker/caregiver/${id}`);
   };
 
   const handleBook = (id) => {

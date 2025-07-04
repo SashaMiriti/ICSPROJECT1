@@ -12,12 +12,14 @@ export default function BookingForm() {
     date: '',
     startTime: '',
     endTime: '',
-    serviceType: '',
+    specializationCategory: '',
     notes: '',
     location: {
       address: '',
       coordinates: []
-    }
+    },
+    price: '',
+    priceType: 'Fixed',
   });
 
   // Fetch caregiver details and care seeker's location on component mount
@@ -26,6 +28,21 @@ export default function BookingForm() {
       try {
         const response = await axios.get(`http://localhost:5000/api/caregivers/${caregiverId}`);
         setCaregiver(response.data.caregiver);
+        
+        // Pre-fill specializationCategory with caregiver's value if available
+        if (response.data.caregiver.specializationCategory) {
+          setFormData(prev => ({
+            ...prev,
+            specializationCategory: response.data.caregiver.specializationCategory
+          }));
+        }
+        // Pre-fill price with caregiver's hourlyRate if available
+        if (typeof response.data.caregiver.hourlyRate === 'number' && !isNaN(response.data.caregiver.hourlyRate)) {
+          setFormData(prev => ({
+            ...prev,
+            price: response.data.caregiver.hourlyRate
+          }));
+        }
       } catch (error) {
         console.error('Error fetching caregiver details:', error);
         if (error.response?.status === 404) {
@@ -67,7 +84,7 @@ export default function BookingForm() {
 
     try {
       // Validate form data
-      if (!formData.date || !formData.startTime || !formData.endTime || !formData.serviceType) {
+      if (!formData.date || !formData.startTime || !formData.endTime || !formData.specializationCategory) {
         toast.error('Please fill in all required fields');
         setLoading(false);
         return;
@@ -102,12 +119,14 @@ export default function BookingForm() {
         caregiverId,
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
-        service: formData.serviceType,
+        service: formData.specializationCategory,
         notes: formData.notes,
         location: {
           address: formData.location.address,
           coordinates: formData.location.coordinates
-        }
+        },
+        price: formData.price,
+        priceType: formData.priceType,
       };
 
       // Submit booking
@@ -198,9 +217,56 @@ export default function BookingForm() {
                   <strong>Experience:</strong> {caregiver.experienceYears} years
                 </p>
                 {caregiver.specializations && caregiver.specializations.length > 0 && (
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 mb-2">
                     <strong>Specializations:</strong> {caregiver.specializations.join(', ')}
                   </p>
+                )}
+                {/* Caregiver Schedule/Availability */}
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <h5 className="font-medium text-gray-900 mb-2">Available Schedule</h5>
+                  {/* Detailed availability */}
+                  {caregiver.availability && caregiver.availability.days && caregiver.availability.days.length > 0 ? (
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-600">
+                        <strong>Available Days:</strong> {caregiver.availability.days.join(', ')}
+                      </p>
+                      {caregiver.availability.timeSlots && caregiver.availability.timeSlots.length > 0 && (
+                        <p className="text-sm text-gray-600">
+                          <strong>Available Hours:</strong> {caregiver.availability.timeSlots.map((slot, idx) => (
+                            <span key={idx}>{slot.startTime || 'Flexible'} - {slot.endTime || 'Flexible'}{idx < caregiver.availability.timeSlots.length - 1 ? ', ' : ''}</span>
+                          ))}
+                        </p>
+                      )}
+                    </div>
+                  ) : caregiver.schedule && (caregiver.schedule.days || caregiver.schedule.time) ? (
+                    <div className="space-y-1">
+                      {caregiver.schedule.days && (
+                        <p className="text-sm text-gray-600">
+                          <strong>Days:</strong> {caregiver.schedule.days}
+                        </p>
+                      )}
+                      {caregiver.schedule.time && (
+                        <p className="text-sm text-gray-600">
+                          <strong>Time:</strong> {caregiver.schedule.time}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">Schedule not specified</p>
+                  )}
+                </div>
+                {/* Services Offered */}
+                {caregiver.servicesOffered && caregiver.servicesOffered.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <h5 className="font-medium text-gray-900 mb-2">Services Offered</h5>
+                    <div className="flex flex-wrap gap-1">
+                      {caregiver.servicesOffered.map((service, index) => (
+                        <span key={index} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                          {service}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -267,26 +333,20 @@ export default function BookingForm() {
 
                     <div className="col-span-6 sm:col-span-3">
                       <label
-                        htmlFor="serviceType"
+                        htmlFor="specializationCategory"
                         className="block text-sm font-medium text-gray-700"
                       >
                         Service Type *
                       </label>
-                      <select
-                        id="serviceType"
-                        name="serviceType"
-                        required
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                        value={formData.serviceType}
-                        onChange={handleChange}
-                      >
-                        <option value="">Select a service</option>
-                        <option value="elderly care">Elderly Care</option>
-                        <option value="child care">Child Care</option>
-                        <option value="disability care">Disability Care</option>
-                        <option value="medical care">Medical Care</option>
-                        <option value="companionship">Companionship</option>
-                      </select>
+                      <input
+                        type="text"
+                        id="specializationCategory"
+                        name="specializationCategory"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm bg-gray-100 cursor-not-allowed"
+                        value={formData.specializationCategory}
+                        readOnly
+                        tabIndex={-1}
+                      />
                     </div>
 
                     <div className="col-span-6">
@@ -306,6 +366,33 @@ export default function BookingForm() {
                         value={formData.location.address}
                         onChange={handleLocationChange}
                       />
+                    </div>
+
+                    <div className="col-span-6 sm:col-span-3">
+                      <label htmlFor="price" className="block text-sm font-medium text-gray-700">Proposed Price (Ksh)</label>
+                      <input
+                        type="number"
+                        id="price"
+                        name="price"
+                        min="0"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                        value={formData.price}
+                        onChange={handleChange}
+                        placeholder="Enter your proposed price"
+                      />
+                    </div>
+                    <div className="col-span-6 sm:col-span-3">
+                      <label htmlFor="priceType" className="block text-sm font-medium text-gray-700">Price Type</label>
+                      <select
+                        id="priceType"
+                        name="priceType"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                        value={formData.priceType}
+                        onChange={handleChange}
+                      >
+                        <option value="Fixed">Fixed</option>
+                        <option value="Bargainable">Bargainable</option>
+                      </select>
                     </div>
 
                     <div className="col-span-6">

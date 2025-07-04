@@ -32,10 +32,19 @@ const UserSchema = new mongoose.Schema({
         default: 'careSeeker'
     },
     status: {
-    type: String,
-    enum: ['pending', 'approved', 'rejected', 'active'],
-    default: 'active'
-},
+        type: String,
+        enum: ['pending', 'approved', 'rejected', 'active'],
+        default: function() {
+            // Set default status based on role
+            if (this.role === 'caregiver') {
+                return 'pending'; // Caregivers start as pending until admin approval
+            } else if (this.role === 'admin') {
+                return 'active'; // Admins are always active
+            } else {
+                return 'active'; // Care seekers are active by default
+            }
+        }
+    },
     phone: {
         type: String,
         required: [true, 'Please add a phone number'],

@@ -83,11 +83,30 @@ router.post('/login', [
       return next(new ErrorResponse('Invalid credentials', 401));
     }
 
-    if (role === 'caregiver' && user.status !== 'approved') {
-      return res.status(403).json({
-        message: 'Caregiver not yet approved by admin',
-        user: { username: user.username }
-      });
+    // Check caregiver approval status
+    if (role === 'caregiver') {
+      if (user.status === 'rejected') {
+        return res.status(403).json({
+          message: 'Your caregiver application has been rejected. Please contact support if you believe this was a mistake.',
+          user: { username: user.username }
+        });
+      }
+      
+      if (user.status !== 'approved') {
+        return res.status(403).json({
+          message: 'Caregiver not yet approved by admin',
+          user: { username: user.username }
+        });
+      }
+
+      // Double-check with Caregiver collection isVerified field
+      const caregiverProfile = await Caregiver.findOne({ user: user._id });
+      if (!caregiverProfile || !caregiverProfile.isVerified) {
+        return res.status(403).json({
+          message: 'Caregiver verification incomplete. Please contact support.',
+          user: { username: user.username }
+        });
+      }
     }
 
     const token = jwt.sign({ user: { id: user._id } }, JWT_SECRET, { expiresIn: '30d' });
@@ -201,7 +220,7 @@ router.post(
           location: geoJsonLocation,
           specializationCategory,
           documents,
-          applicationStatus: 'pending'
+          isVerified: false
         }).save();
       }
 

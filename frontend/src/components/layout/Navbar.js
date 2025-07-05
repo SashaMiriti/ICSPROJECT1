@@ -49,11 +49,39 @@ const Navbar = () => {
                 >
                   Search Caregivers
                 </Link>
+              </div>
+            )}
+            {user && user.role === 'caregiver' && (
+              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <Link
-                  to="/care-seeker/feedback"
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/care-seeker/feedback') ? 'border-yellow-700 text-yellow-700' : 'border-transparent text-gray-500 hover:border-yellow-700 hover:text-yellow-700'}`}
+                  to="/caregiver/dashboard"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/caregiver/dashboard') ? 'border-green-700 text-green-700' : 'border-transparent text-gray-500 hover:border-green-700 hover:text-green-700'}`}
                 >
-                  Give Feedback
+                  Dashboard
+                </Link>
+                <Link
+                  to="/caregiver/schedule"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/caregiver/schedule') ? 'border-pink-700 text-pink-700' : 'border-transparent text-gray-500 hover:border-pink-700 hover:text-pink-700'}`}
+                >
+                  My Schedule
+                </Link>
+                <Link
+                  to="/caregiver/profile"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/caregiver/profile') ? 'border-purple-700 text-purple-700' : 'border-transparent text-gray-500 hover:border-purple-700 hover:text-purple-700'}`}
+                >
+                  My Profile
+                </Link>
+                <Link
+                  to="/caregiver/bookings"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/caregiver/bookings') ? 'border-blue-700 text-blue-700' : 'border-transparent text-gray-500 hover:border-blue-700 hover:text-blue-700'}`}
+                >
+                  My Bookings
+                </Link>
+                <Link
+                  to="/caregiver/reviews"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/caregiver/reviews') ? 'border-yellow-700 text-yellow-700' : 'border-transparent text-gray-500 hover:border-yellow-700 hover:text-yellow-700'}`}
+                >
+                  My Reviews
                 </Link>
               </div>
             )}
@@ -61,7 +89,7 @@ const Navbar = () => {
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
             {user ? (
               <div className="flex items-center space-x-4">
-                {user.role === 'careSeeker' && (
+                {(user.role === 'careSeeker' || user.role === 'caregiver') && (
                   <button
                     onClick={handleLogout}
                     className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"

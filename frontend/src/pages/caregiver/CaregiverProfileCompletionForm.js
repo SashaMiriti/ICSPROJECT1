@@ -155,7 +155,9 @@ const CaregiverProfileCompletionForm = () => {
     tribalLanguage: existingProfile?.tribalLanguage || '',
     gender: existingProfile?.gender || '',
     culture: existingProfile?.culture || '',
-    religion: existingProfile?.religion || ''
+    religion: existingProfile?.religion || '',
+    hourlyRate: existingProfile?.hourlyRate || '',
+    priceType: existingProfile?.priceType || 'Fixed'
   };
 
   const validationSchema = Yup.object({
@@ -178,7 +180,9 @@ const CaregiverProfileCompletionForm = () => {
     ),
     gender: Yup.string().required('Required'),
     culture: Yup.string().required('Required'),
-    religion: Yup.string().required('Required')
+    religion: Yup.string().required('Required'),
+    hourlyRate: Yup.number().min(0).required('Required'),
+    priceType: Yup.string().required('Required')
   });
 
   const handleSubmit = async (values, { setSubmitting }) => {
@@ -246,11 +250,21 @@ const response = await axios.put(
             <div>
               <label className="block mb-1">Specialization</label>
               <Field as="select" name="specializationCategory" className="w-full border p-2 rounded">
-                <option value="">Select Specialization Category</option>
                 <option value="Elderly Care">Elderly Care</option>
                 <option value="Persons with Disabilities">Persons with Disabilities</option>
               </Field>
               <ErrorMessage name="specializationCategory" component="div" className="text-red-500 text-sm" />
+              {values.specializationCategory === 'Persons with Disabilities' && (
+                <div className="mt-2">
+                  <label className="block mb-1">Describe Disability Specialization</label>
+                  <Field
+                    name="disabilitySpecialization"
+                    placeholder="e.g. Physical disabilities, Mental disability, etc."
+                    className="w-full border p-2 rounded"
+                  />
+                  <ErrorMessage name="disabilitySpecialization" component="div" className="text-red-500 text-sm" />
+                </div>
+              )}
             </div>
 
             <div>
@@ -308,6 +322,36 @@ const response = await axios.put(
               <label className="block mb-1">Religion</label>
               <Field name="religion" className="w-full border p-2 rounded" />
               <ErrorMessage name="religion" component="div" className="text-red-500 text-sm" />
+            </div>
+
+            <div>
+              <label htmlFor="hourlyRate" className="block text-sm font-medium text-gray-700 mb-1">
+                Desired Price (Ksh per hour)
+              </label>
+              <Field
+                id="hourlyRate"
+                name="hourlyRate"
+                type="number"
+                min="0"
+                className="w-full px-4 py-2 border rounded-md shadow-sm"
+                placeholder="Enter your price per hour in Ksh"
+              />
+              <ErrorMessage name="hourlyRate" component="p" className="text-sm text-red-600 mt-1" />
+            </div>
+
+            <div className="mb-4">
+              <label htmlFor="priceType" className="block text-sm font-medium text-gray-700">Price Type</label>
+              <select
+                id="priceType"
+                name="priceType"
+                value={values.priceType || 'Fixed'}
+                onChange={(e) => setFieldValue('priceType', e.target.value)}
+                className="w-full p-2 border rounded"
+                required
+              >
+                <option value="Fixed">Fixed</option>
+                <option value="Bargainable">Bargainable</option>
+              </select>
             </div>
 
             <button

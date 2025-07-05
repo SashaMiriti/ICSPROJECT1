@@ -104,7 +104,14 @@ const CaregiverSchema = new mongoose.Schema({
     profileComplete: {
         type: Boolean,
         default: false
-    }
+    },
+
+    hourlyRate: { type: Number, default: 0 },
+    priceType: { 
+        type: String, 
+        enum: ['Fixed', 'Negotiable'], 
+        default: 'Fixed' 
+    },
 
 }, { timestamps: true });
 

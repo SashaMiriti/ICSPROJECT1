@@ -95,11 +95,11 @@ router.post('/', [auth, [
             return res.status(400).json({ message: 'Care seeker profile not found. Please complete your profile first.' });
         }
 
-        // Calculate price based on duration and hourly rate
-        let price = 0;
+        // Calculate total cost for reference (not stored, just for logic)
+        let totalCost = 0;
         if (typeof caregiver.hourlyRate === 'number' && !isNaN(caregiver.hourlyRate)) {
             const duration = moment.duration(end.diff(start)).asHours();
-            price = duration * caregiver.hourlyRate;
+            totalCost = duration * caregiver.hourlyRate;
         }
 
         const booking = new Booking({
@@ -110,8 +110,8 @@ router.post('/', [auth, [
             service,
             notes,
             location,
-            price: Math.round(price * 100) / 100, // Round to 2 decimal places
-            priceType: req.body.priceType || 'Fixed',
+            budget: req.body.budget, // use careseeker's proposed budget
+            // price and priceType removed
         });
 
         await booking.save();

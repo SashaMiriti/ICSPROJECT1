@@ -6,6 +6,12 @@ import axios from 'axios';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 
+// Utility function to get the correct image URL
+const getImageUrl = (filename) => {
+  const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+  return `${baseUrl}/uploads/certifications/${filename}`;
+};
+
 const isImageFile = (filename) => {
   return /\.(jpg|jpeg|png|gif)$/i.test(filename);
 };
@@ -21,15 +27,30 @@ const CaregiverDetail = () => {
   const fetchCaregiverDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`/api/admin/caregiver/${id}`);
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setMessage('Please log in to access admin dashboard');
+        navigate('/login');
+        return;
+      }
+
+      const res = await axios.get(`http://localhost:5000/api/admin/caregiver/${id}`, {
+        headers: { 'x-auth-token': token }
+      });
       setCaregiver(res.data);
     } catch (error) {
       console.error('Error fetching caregiver details:', error);
-      setMessage('Error loading caregiver details');
+      if (error.response?.status === 403) {
+        setMessage('Access denied. Admin privileges required.');
+        navigate('/');
+      } else {
+        setMessage('Error loading caregiver details');
+      }
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, navigate]);
 
   useEffect(() => {
     fetchCaregiverDetails();
@@ -39,9 +60,12 @@ const CaregiverDetail = () => {
     try {
       setUpdating(true);
       const newVerificationStatus = !caregiver.isVerified;
+      const token = localStorage.getItem('token');
       
-      await axios.put(`/api/admin/toggle-verification/${id}`, {
+      await axios.put(`http://localhost:5000/api/admin/toggle-verification/${id}`, {
         isVerified: newVerificationStatus
+      }, {
+        headers: { 'x-auth-token': token }
       });
       
       // Update local state
@@ -66,7 +90,11 @@ const CaregiverDetail = () => {
   const handleAction = async (action) => {
     try {
       setUpdating(true);
-      await axios.put(`/api/admin/${action}-caregiver/${id}`);
+      const token = localStorage.getItem('token');
+      
+      await axios.put(`http://localhost:5000/api/admin/${action}-caregiver/${id}`, {}, {
+        headers: { 'x-auth-token': token }
+      });
       navigate('/admin/pending-caregivers');
     } catch (err) {
       console.error(`Failed to ${action} caregiver`, err);
@@ -312,26 +340,43 @@ const CaregiverDetail = () => {
       {/* Certifications */}
       <Card className="mt-6">
         <CardContent className="p-6">
-          <h2 className="text-xl font-semibold text-green-700 mb-4">Certifications & Documents</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-green-700">Certifications & Documents</h2>
+            <span className="text-sm text-gray-600">
+              {caregiver.documents?.length || 0} document{(caregiver.documents?.length || 0) !== 1 ? 's' : ''} uploaded
+            </span>
+          </div>
           {caregiver.documents && caregiver.documents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {caregiver.documents.map((doc, idx) => (
-                <div key={idx} className="border rounded-lg p-4">
+                <div key={idx} className="border rounded-lg p-4 hover:shadow-md transition">
                   {isImageFile(doc.filename) ? (
                     <div className="text-center">
                       <a
-                        href={`http://localhost:5000/uploads/certifications/${doc.filename}`}
+                        href={getImageUrl(doc.filename)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block"
                       >
                         <img
-                          src={`http://localhost:5000/uploads/certifications/${doc.filename}`}
-                          alt={doc.filename.split('/').pop()}
-                          className="w-full h-48 object-cover rounded border mb-2"
+                          src={getImageUrl(doc.filename)}
+                          alt={doc.originalName || doc.filename.split('/').pop()}
+                          className="w-full h-48 object-cover rounded border mb-2 hover:opacity-90 transition"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'block';
+                          }}
                         />
+                        <div className="w-full h-48 bg-gray-100 rounded border mb-2 flex items-center justify-center" style={{ display: 'none' }}>
+                          <div className="text-center">
+                            <span className="text-2xl text-gray-500">❌</span>
+                            <p className="text-xs text-gray-600 mt-1">Image not found</p>
+                          </div>
+                        </div>
                       </a>
-                      <p className="text-sm text-gray-700">{doc.filename.split('/').pop()}</p>
+                      <p className="text-sm text-gray-700 font-medium">
+                        {doc.originalName || doc.filename.split('/').pop()}
+                      </p>
                       <span className={`inline-block px-2 py-1 rounded text-xs mt-1 ${
                         doc.status === 'approved' ? 'bg-green-100 text-green-800' :
                         doc.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
@@ -343,16 +388,21 @@ const CaregiverDetail = () => {
                   ) : (
                     <div className="text-center">
                       <a
-                        href={`http://localhost:5000/uploads/certifications/${doc.filename}`}
+                        href={getImageUrl(doc.filename)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                        className="text-blue-600 hover:underline block"
                       >
-                        <div className="w-full h-48 bg-gray-100 rounded border mb-2 flex items-center justify-center">
-                          <span className="text-gray-500">📄 Document</span>
+                        <div className="w-full h-48 bg-gray-100 rounded border mb-2 flex items-center justify-center hover:bg-gray-200 transition">
+                          <div className="text-center">
+                            <span className="text-4xl text-gray-500">📄</span>
+                            <p className="text-xs text-gray-600 mt-1">View Document</p>
+                          </div>
                         </div>
                       </a>
-                      <p className="text-sm text-gray-700">{doc.filename.split('/').pop()}</p>
+                      <p className="text-sm text-gray-700 font-medium">
+                        {doc.originalName || doc.filename.split('/').pop()}
+                      </p>
                       <span className={`inline-block px-2 py-1 rounded text-xs mt-1 ${
                         doc.status === 'approved' ? 'bg-green-100 text-green-800' :
                         doc.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
@@ -366,7 +416,11 @@ const CaregiverDetail = () => {
               ))}
             </div>
           ) : (
-            <p className="text-gray-500">No certifications uploaded.</p>
+            <div className="text-center py-8">
+              <div className="text-4xl mb-2">📋</div>
+              <p className="text-gray-500">No certifications uploaded.</p>
+              <p className="text-sm text-gray-400 mt-1">This caregiver hasn't uploaded any documents yet.</p>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -374,38 +428,80 @@ const CaregiverDetail = () => {
       {/* Action Buttons */}
       <Card className="mt-6">
         <CardContent className="p-6">
-          <h2 className="text-xl font-semibold text-green-700 mb-4">Admin Actions</h2>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-green-700">Admin Actions</h2>
+            <div className="text-sm text-gray-600">
+              Current Status: 
+              <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                caregiver.isVerified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+              }`}>
+                {caregiver.isVerified ? 'Verified' : 'Pending Verification'}
+              </span>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Button
               className={`${
                 caregiver.isVerified 
                   ? 'bg-orange-600 hover:bg-orange-700' 
                   : 'bg-green-600 hover:bg-green-700'
-              } text-white`}
+              } text-white h-12 text-base`}
               onClick={handleToggleVerification}
               disabled={updating}
             >
-              {updating ? 'Updating...' : caregiver.isVerified ? 'Remove Verification' : 'Verify Caregiver'}
+              {updating ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Updating...
+                </div>
+              ) : caregiver.isVerified ? (
+                <div className="flex items-center">
+                  <span className="mr-2">⚠️</span>
+                  Remove Verification
+                </div>
+              ) : (
+                <div className="flex items-center">
+                  <span className="mr-2">✅</span>
+                  Verify Caregiver
+                </div>
+              )}
             </Button>
             
             {!caregiver.isVerified && (
               <>
                 <Button
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  className="bg-green-600 hover:bg-green-700 text-white h-12 text-base"
                   onClick={() => handleAction('approve')}
                   disabled={updating}
                 >
-                  Approve
+                  <div className="flex items-center">
+                    <span className="mr-2">👍</span>
+                    Approve & Verify
+                  </div>
                 </Button>
                 <Button
-                  className="bg-red-600 hover:bg-red-700 text-white"
+                  className="bg-red-600 hover:bg-red-700 text-white h-12 text-base"
                   onClick={() => handleAction('reject')}
                   disabled={updating}
                 >
-                  Reject
+                  <div className="flex items-center">
+                    <span className="mr-2">❌</span>
+                    Reject Application
+                  </div>
                 </Button>
               </>
             )}
+          </div>
+          
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 className="font-medium text-blue-800 mb-2">Verification Guidelines:</h3>
+            <ul className="text-sm text-blue-700 space-y-1">
+              <li>• Review all uploaded documents and certifications</li>
+              <li>• Verify contact information and professional details</li>
+              <li>• Check experience and qualifications match requirements</li>
+              <li>• Ensure profile completeness and accuracy</li>
+            </ul>
           </div>
         </CardContent>
       </Card>

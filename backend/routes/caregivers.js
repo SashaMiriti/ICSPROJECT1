@@ -402,4 +402,31 @@ router.get('/:id/reviews', async (req, res) => {
     }
 });
 
+// @route   GET /api/caregivers/reviews
+// @desc    Get reviews for the currently authenticated caregiver
+// @access  Private
+router.get('/reviews', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user || user.role !== 'caregiver') {
+            return res.status(403).json({ message: 'Not authorized as caregiver' });
+        }
+        const caregiver = await Caregiver.findOne({ user: user._id });
+        if (!caregiver) {
+            return res.status(404).json({ message: 'Caregiver profile not found' });
+        }
+        const reviews = await Review.find({ caregiver: caregiver._id })
+            .populate({
+                path: 'careSeeker',
+                populate: { path: 'user', select: 'name' }
+            })
+            .populate('booking', 'service startTime')
+            .sort({ createdAt: -1 });
+        res.json(reviews);
+    } catch (err) {
+        console.error('Error fetching caregiver reviews:', err);
+        res.status(500).json({ message: 'Server error fetching reviews' });
+    }
+});
+
 module.exports = router;

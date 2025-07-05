@@ -193,39 +193,22 @@ export default function CaregiverProfile() {
             {/* Schedule/Availability Section */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">My Schedule</h2>
-              {caregiver.availability && caregiver.availability.days && caregiver.availability.days.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full border border-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="border border-gray-200 px-4 py-2 text-left text-sm font-medium text-gray-700">Day</th>
-                        <th className="border border-gray-200 px-4 py-2 text-left text-sm font-medium text-gray-700">Available</th>
-                        <th className="border border-gray-200 px-4 py-2 text-left text-sm font-medium text-gray-700">Start Time</th>
-                        <th className="border border-gray-200 px-4 py-2 text-left text-sm font-medium text-gray-700">End Time</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
-                        const dayData = caregiver.availability.days.find(d => d.day === day);
-                        return (
-                          <tr key={day} className="hover:bg-gray-50">
-                            <td className="border border-gray-200 px-4 py-2 text-sm font-medium text-gray-900 capitalize">
-                              {day}
-                            </td>
-                            <td className="border border-gray-200 px-4 py-2 text-sm text-gray-900">
-                              {dayData ? 'Yes' : 'No'}
-                            </td>
-                            <td className="border border-gray-200 px-4 py-2 text-sm text-gray-900">
-                              {dayData?.startTime || '-'}
-                            </td>
-                            <td className="border border-gray-200 px-4 py-2 text-sm text-gray-900">
-                              {dayData?.endTime || '-'}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+              {caregiver.availability && Array.isArray(caregiver.availability.days) && caregiver.availability.days.length > 0 ? (
+                <div>
+                  <div className="mb-2">
+                    <span className="font-medium text-gray-900">Available Days:</span>
+                    <span className="ml-2 text-gray-700">{caregiver.availability.days.join(', ')}</span>
+                  </div>
+                  {Array.isArray(caregiver.availability.timeSlots) && caregiver.availability.timeSlots[0] ? (
+                    <div>
+                      <span className="font-medium text-gray-900">Time:</span>
+                      <span className="ml-2 text-gray-700">
+                        {caregiver.availability.timeSlots[0].startTime} - {caregiver.availability.timeSlots[0].endTime}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="text-gray-500">No time slot set</div>
+                  )}
                 </div>
               ) : (
                 <p className="text-gray-500 text-center py-8">No schedule information available</p>

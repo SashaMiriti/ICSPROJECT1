@@ -38,7 +38,9 @@ export default function Schedule() {
             setEndTime(res.data.availability.timeSlots[0].endTime || '17:00');
           }
         }
-        if (res.data.hourlyRate) setHourlyRate(res.data.hourlyRate);
+        if (res.data.hourlyRate !== undefined && res.data.hourlyRate !== null) {
+          setHourlyRate(res.data.hourlyRate.toString());
+        }
         if (res.data.priceType) setPriceType(res.data.priceType);
       } catch (err) {
         console.error('Error fetching schedule:', err);
@@ -58,6 +60,16 @@ export default function Schedule() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
+    
+    // Validate hourly rate
+    if (hourlyRate !== null && hourlyRate !== undefined && hourlyRate !== '') {
+      const rate = parseFloat(hourlyRate);
+      if (isNaN(rate) || rate < 0) {
+        setMessage('Please enter a valid hourly rate (must be a positive number).');
+        return;
+      }
+    }
+    
     try {
       // Update schedule
       await axios.put(
@@ -70,22 +82,26 @@ export default function Schedule() {
           headers: { 'x-auth-token': token },
         }
       );
-      // Update pricing - only if hourlyRate is provided
-      if (hourlyRate && hourlyRate.trim() !== '') {
-        await axios.put(
-          'http://localhost:5000/api/caregivers/profile',
-          {
-            hourlyRate: parseFloat(hourlyRate),
-            priceType,
-          },
-          {
-            headers: { 'x-auth-token': token },
-          }
-        );
+      // Update pricing - only if hourlyRate is provided and valid
+      if (hourlyRate !== null && hourlyRate !== undefined && hourlyRate !== '') {
+        const rate = parseFloat(hourlyRate);
+        if (!isNaN(rate) && rate >= 0) {
+          await axios.put(
+            'http://localhost:5000/api/caregivers/profile',
+            {
+              hourlyRate: rate,
+              priceType,
+            },
+            {
+              headers: { 'x-auth-token': token },
+            }
+          );
+        }
       }
       setMessage('Schedule and pricing saved successfully!');
     } catch (err) {
-      setMessage('Error saving schedule or pricing.');
+      const errorMessage = err.response?.data?.message || err.message || 'Error saving schedule or pricing.';
+      setMessage(errorMessage);
       console.error('Error saving schedule or pricing:', err);
     }
   };

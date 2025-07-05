@@ -168,4 +168,14 @@ if (process.env.NODE_ENV === 'production') {
 // Start server
 server.listen(PORT, () => {
   console.log(` Server running on port ${PORT}`);
+  
+  // Check email configuration
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.log('⚠️  Email notifications disabled - EMAIL_USER and EMAIL_PASS not configured');
+    console.log('📧 To enable email notifications, create a .env file with:');
+    console.log('   EMAIL_USER=your-email@gmail.com');
+    console.log('   EMAIL_PASS=your-app-password');
+  } else {
+    console.log('✅ Email notifications enabled');
+  }
 });

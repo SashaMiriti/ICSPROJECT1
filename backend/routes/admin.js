@@ -26,9 +26,15 @@ const formatCaregiverData = (user, profile) => ({
   })) || []
 });
 
-// ✅ Get all pending caregivers
-router.get('/pending-caregivers', async (req, res) => {
+// ✅ Get all pending caregivers with comprehensive details
+router.get('/pending-caregivers', auth, async (req, res) => {
   try {
+    // Check admin authorization
+    const user = await User.findById(req.user.id);
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized as admin' });
+    }
+
     // Fetch all caregivers whose isVerified is false
     const pendingCaregivers = await Caregiver.find({ isVerified: false }).populate('user');
     // Format the data to include both user and caregiver profile info
@@ -40,15 +46,40 @@ router.get('/pending-caregivers', async (req, res) => {
         email: user?.email,
         phone: user?.phone,
         status: user?.status,
+        // Profile information
+        fullName: profile.fullName,
+        contactNumber: profile.contactNumber,
         bio: profile.bio || '',
+        experienceYears: profile.experienceYears,
+        specializationCategory: profile.specializationCategory,
+        languagesSpoken: profile.languagesSpoken,
+        tribalLanguage: profile.tribalLanguage,
+        gender: profile.gender,
+        culture: profile.culture,
+        religion: profile.religion,
+        qualifications: profile.qualifications,
+        servicesOffered: profile.servicesOffered,
+        // Location
         location: typeof profile.location === 'string' ? profile.location : profile.location?.address || '',
+        // Pricing
+        hourlyRate: profile.hourlyRate,
+        priceType: profile.priceType,
+        // Availability
+        availability: profile.availability,
+        schedule: profile.schedule,
+        // Documents with full details
         documents: profile.documents?.map(doc => ({
           filename: `${doc.filename.replace(/\\/g, '/')}`,
-          status: doc.status
+          status: doc.status,
+          originalName: doc.originalName || doc.filename.split('/').pop()
         })) || [],
-        specializationCategory: profile.specializationCategory,
+        // Verification status
         isVerified: profile.isVerified,
-        profileComplete: profile.profileComplete
+        profileComplete: profile.profileComplete,
+        // Timestamps
+        createdAt: profile.createdAt,
+        updatedAt: profile.updatedAt,
+        userCreatedAt: user?.createdAt
       };
     });
     res.json(combined);
@@ -59,8 +90,14 @@ router.get('/pending-caregivers', async (req, res) => {
 });
 
 // ✅ Get specific caregiver by ID with full details
-router.get('/caregiver/:id', async (req, res) => {
+router.get('/caregiver/:id', auth, async (req, res) => {
   try {
+    // Check admin authorization
+    const adminUser = await User.findById(req.user.id);
+    if (adminUser.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized as admin' });
+    }
+
     const user = await User.findById(req.params.id).select('-password');
     if (!user || user.role !== 'caregiver') {
       return res.status(404).json({ message: 'Caregiver not found' });
@@ -71,7 +108,7 @@ router.get('/caregiver/:id', async (req, res) => {
       return res.status(404).json({ message: 'Caregiver profile not found' });
     }
 
-    // Return comprehensive caregiver data
+    // Return comprehensive caregiver data with all registration details
     const caregiverData = {
       _id: user._id,
       username: user.username,
@@ -98,17 +135,21 @@ router.get('/caregiver/:id', async (req, res) => {
       priceType: profile.priceType,
       // Availability
       availability: profile.availability,
+      schedule: profile.schedule,
       // Verification status
       isVerified: profile.isVerified,
       profileComplete: profile.profileComplete,
-      // Documents
+      // Documents with full path for admin access
       documents: profile.documents?.map(doc => ({
         filename: `${doc.filename.replace(/\\/g, '/')}`,
-        status: doc.status
+        status: doc.status,
+        originalName: doc.originalName || doc.filename.split('/').pop()
       })) || [],
       // Timestamps
       createdAt: profile.createdAt,
-      updatedAt: profile.updatedAt
+      updatedAt: profile.updatedAt,
+      // User registration date
+      userCreatedAt: user.createdAt
     };
 
     return res.json(caregiverData);
@@ -119,8 +160,14 @@ router.get('/caregiver/:id', async (req, res) => {
 });
 
 // ✅ Approve caregiver and send email
-router.put('/approve-caregiver/:id', async (req, res) => {
+router.put('/approve-caregiver/:id', auth, async (req, res) => {
   try {
+    // Check admin authorization
+    const user = await User.findById(req.user.id);
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized as admin' });
+    }
+
     // Approve the user (set status: 'approved')
     const caregiverUser = await User.findByIdAndUpdate(
       req.params.id,
@@ -128,24 +175,29 @@ router.put('/approve-caregiver/:id', async (req, res) => {
       { new: true }
     );
 
-    // Also set isVerified: true on the Caregiver profile
+    // Also set isVerified: true and profileComplete: true on the Caregiver profile
     await Caregiver.findOneAndUpdate(
       { user: req.params.id },
-      { isVerified: true }
+      { isVerified: true, profileComplete: true }
     );
 
     if (caregiverUser && caregiverUser.email) {
-      await sendEmail({
-        to: caregiverUser.email,
-        subject: 'TogetherCare Approval Notification ✅',
-        html: `
-          <p>Hello <strong>${caregiverUser.username}</strong>,</p>
-          <p>Your caregiver application has been <b style="color:green">approved</b>!</p>
-          <p>You can now <a href="http://localhost:3000/login">log in</a> to your TogetherCare account using your credentials.</p>
-          <p>Thank you for joining us!</p>
-          <p style="margin-top:20px">— TogetherCare Admin Team</p>
-        `
-      });
+      try {
+        await sendEmail({
+          to: caregiverUser.email,
+          subject: 'TogetherCare Approval Notification ✅',
+          html: `
+            <p>Hello <strong>${caregiverUser.username}</strong>,</p>
+            <p>Your caregiver application has been <b style="color:green">approved</b>!</p>
+            <p>You can now <a href="http://localhost:3000/login">log in</a> to your TogetherCare account using your credentials.</p>
+            <p>Thank you for joining us!</p>
+            <p style="margin-top:20px">— TogetherCare Admin Team</p>
+          `
+        });
+      } catch (emailError) {
+        console.error('Email notification failed, but approval was successful:', emailError.message);
+        // Don't throw error - approval was successful, email is just a notification
+      }
     }
 
     res.json({ message: 'Caregiver approved and notified via email ✅', caregiver: caregiverUser });
@@ -156,8 +208,14 @@ router.put('/approve-caregiver/:id', async (req, res) => {
 });
 
 // ✅ Reject caregiver and send email
-router.put('/reject-caregiver/:id', async (req, res) => {
+router.put('/reject-caregiver/:id', auth, async (req, res) => {
   try {
+    // Check admin authorization
+    const user = await User.findById(req.user.id);
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized as admin' });
+    }
+
     const caregiver = await User.findByIdAndUpdate(
       req.params.id,
       { status: 'rejected' },
@@ -165,16 +223,21 @@ router.put('/reject-caregiver/:id', async (req, res) => {
     );
 
     if (caregiver && caregiver.email) {
-      await sendEmail({
-        to: caregiver.email,
-        subject: 'TogetherCare Application Status ❌',
-        html: `
-          <p>Hello <strong>${caregiver.username}</strong>,</p>
-          <p>We regret to inform you that your caregiver application has been <b style="color:red">rejected</b> at this time.</p>
-          <p>If you believe this was a mistake or would like to apply again, please contact support or visit our site again in the future.</p>
-          <p style="margin-top:20px">— TogetherCare Admin Team</p>
-        `
-      });
+      try {
+        await sendEmail({
+          to: caregiver.email,
+          subject: 'TogetherCare Application Status ❌',
+          html: `
+            <p>Hello <strong>${caregiver.username}</strong>,</p>
+            <p>We regret to inform you that your caregiver application has been <b style="color:red">rejected</b> at this time.</p>
+            <p>If you believe this was a mistake or would like to apply again, please contact support or visit our site again in the future.</p>
+            <p style="margin-top:20px">— TogetherCare Admin Team</p>
+          `
+        });
+      } catch (emailError) {
+        console.error('Email notification failed, but rejection was successful:', emailError.message);
+        // Don't throw error - rejection was successful, email is just a notification
+      }
     }
 
     res.json({ message: 'Caregiver rejected and notified via email ❌', caregiver });
@@ -185,14 +248,29 @@ router.put('/reject-caregiver/:id', async (req, res) => {
 });
 
 // ✅ Toggle caregiver verification status
-router.put('/toggle-verification/:id', async (req, res) => {
+router.put('/toggle-verification/:id', auth, async (req, res) => {
   try {
+    // Check admin authorization
+    const user = await User.findById(req.user.id);
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized as admin' });
+    }
+
     const { isVerified } = req.body;
     
-    // Update the caregiver profile verification status
+    // First get the current profile to check if it's complete
+    const currentProfile = await Caregiver.findOne({ user: req.params.id });
+    if (!currentProfile) {
+      return res.status(404).json({ message: 'Caregiver profile not found' });
+    }
+    
+    // Update the caregiver profile verification status and profileComplete
     const updatedProfile = await Caregiver.findOneAndUpdate(
       { user: req.params.id },
-      { isVerified: isVerified },
+      { 
+        isVerified: isVerified,
+        profileComplete: isVerified ? true : currentProfile.profileComplete
+      },
       { new: true }
     );
 
@@ -208,33 +286,38 @@ router.put('/toggle-verification/:id', async (req, res) => {
       { new: true }
     );
 
-    // Send email notification
+    // Send email notification (with error handling)
     if (updatedUser && updatedUser.email) {
-      const subject = isVerified 
-        ? 'TogetherCare Verification Approved ✅' 
-        : 'TogetherCare Verification Removed ⚠️';
-      
-      const html = isVerified 
-        ? `
-          <p>Hello <strong>${updatedUser.username}</strong>,</p>
-          <p>Your caregiver profile has been <b style="color:green">verified</b>!</p>
-          <p>You can now <a href="http://localhost:3000/login">log in</a> to your TogetherCare account and start receiving bookings.</p>
-          <p>Thank you for joining us!</p>
-          <p style="margin-top:20px">— TogetherCare Admin Team</p>
-        `
-        : `
-          <p>Hello <strong>${updatedUser.username}</strong>,</p>
-          <p>Your caregiver profile verification has been <b style="color:orange">removed</b>.</p>
-          <p>You may need to provide additional documentation or information to be verified again.</p>
-          <p>Please contact support if you have any questions.</p>
-          <p style="margin-top:20px">— TogetherCare Admin Team</p>
-        `;
+      try {
+        const subject = isVerified 
+          ? 'TogetherCare Verification Approved ✅' 
+          : 'TogetherCare Verification Removed ⚠️';
+        
+        const html = isVerified 
+          ? `
+            <p>Hello <strong>${updatedUser.username}</strong>,</p>
+            <p>Your caregiver profile has been <b style="color:green">verified</b>!</p>
+            <p>You can now <a href="http://localhost:3000/login">log in</a> to your TogetherCare account and start receiving bookings.</p>
+            <p>Thank you for joining us!</p>
+            <p style="margin-top:20px">— TogetherCare Admin Team</p>
+          `
+          : `
+            <p>Hello <strong>${updatedUser.username}</strong>,</p>
+            <p>Your caregiver profile verification has been <b style="color:orange">removed</b>.</p>
+            <p>You may need to provide additional documentation or information to be verified again.</p>
+            <p>Please contact support if you have any questions.</p>
+            <p style="margin-top:20px">— TogetherCare Admin Team</p>
+          `;
 
-      await sendEmail({
-        to: updatedUser.email,
-        subject: subject,
-        html: html
-      });
+        await sendEmail({
+          to: updatedUser.email,
+          subject: subject,
+          html: html
+        });
+      } catch (emailError) {
+        console.error('Email notification failed, but verification was successful:', emailError.message);
+        // Don't throw error - verification was successful, email is just a notification
+      }
     }
 
     res.json({ 
@@ -266,6 +349,8 @@ router.get('/statistics', auth, async (req, res) => {
     const totalUsers = await User.countDocuments();
     const totalCareSeekers = await CareSeeker.countDocuments();
     const totalCaregivers = await Caregiver.countDocuments();
+    const verifiedCaregivers = await Caregiver.countDocuments({ isVerified: true });
+    const pendingCaregivers = await Caregiver.countDocuments({ isVerified: false });
     const totalBookings = await Booking.countDocuments();
     const approvedBookings = await Booking.countDocuments({ status: 'accepted' });
     const pendingBookings = await Booking.countDocuments({ status: 'pending' });
@@ -278,6 +363,8 @@ router.get('/statistics', auth, async (req, res) => {
       totalUsers,
       totalCareSeekers,
       totalCaregivers,
+      verifiedCaregivers,
+      pendingCaregivers,
       totalBookings,
       approvedBookings,
       pendingBookings,
@@ -390,7 +477,7 @@ router.get('/users', auth, async (req, res) => {
 });
 
 // @route   GET /api/admin/caregivers
-// @desc    Get all caregivers with user info
+// @desc    Get all caregivers with comprehensive user info and filtering
 // @access  Private (admin)
 router.get('/caregivers', auth, async (req, res) => {
   try {
@@ -398,8 +485,84 @@ router.get('/caregivers', auth, async (req, res) => {
     if (user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized as admin' });
     }
-    const caregivers = await Caregiver.find().populate('user', 'email username phone');
-    res.json(caregivers);
+    
+    const { verification, search } = req.query;
+    let query = {};
+    
+    // Filter by verification status
+    if (verification === 'verified') {
+      query.isVerified = true;
+    } else if (verification === 'pending') {
+      query.isVerified = false;
+    }
+    
+    // Search functionality
+    if (search) {
+      const caregivers = await Caregiver.find(query).populate({
+        path: 'user',
+        match: {
+          $or: [
+            { username: { $regex: search, $options: 'i' } },
+            { email: { $regex: search, $options: 'i' } }
+          ]
+        },
+        select: 'email username phone status createdAt'
+      });
+      
+      // Filter out caregivers with no matching user
+      const filteredCaregivers = caregivers.filter(caregiver => caregiver.user);
+      
+      // Format the response
+      const formattedCaregivers = filteredCaregivers.map(profile => {
+        const user = profile.user;
+        return {
+          _id: user._id,
+          username: user.username,
+          email: user.email,
+          phone: user.phone,
+          status: user.status,
+          fullName: profile.fullName,
+          specializationCategory: profile.specializationCategory,
+          experienceYears: profile.experienceYears,
+          location: typeof profile.location === 'string' ? profile.location : profile.location?.address || '',
+          hourlyRate: profile.hourlyRate,
+          isVerified: profile.isVerified,
+          profileComplete: profile.profileComplete,
+          documents: profile.documents?.length || 0,
+          createdAt: profile.createdAt,
+          updatedAt: profile.updatedAt
+        };
+      });
+      
+      return res.json(formattedCaregivers);
+    }
+    
+    // Regular query without search
+    const caregivers = await Caregiver.find(query).populate('user', 'email username phone status createdAt');
+    
+    // Format the response
+    const formattedCaregivers = caregivers.map(profile => {
+      const user = profile.user;
+      return {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        phone: user.phone,
+        status: user.status,
+        fullName: profile.fullName,
+        specializationCategory: profile.specializationCategory,
+        experienceYears: profile.experienceYears,
+        location: typeof profile.location === 'string' ? profile.location : profile.location?.address || '',
+        hourlyRate: profile.hourlyRate,
+        isVerified: profile.isVerified,
+        profileComplete: profile.profileComplete,
+        documents: profile.documents?.length || 0,
+        createdAt: profile.createdAt,
+        updatedAt: profile.updatedAt
+      };
+    });
+    
+    res.json(formattedCaregivers);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

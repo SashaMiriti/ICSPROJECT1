@@ -12,6 +12,8 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({
     totalCareSeekers: 0,
     totalCaregivers: 0,
+    verifiedCaregivers: 0,
+    pendingCaregivers: 0,
     approvedBookings: 0,
     pendingBookings: 0,
     cancelledBookings: 0,
@@ -96,6 +98,20 @@ export default function AdminDashboard() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Caregivers</p>
               <p className="text-2xl font-semibold text-gray-900">{stats.totalCaregivers}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow cursor-pointer hover:bg-yellow-50 transition" onClick={() => navigate('/admin/pending-caregivers')}>
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-yellow-100 text-yellow-600">
+              <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Pending Caregivers</p>
+              <p className="text-2xl font-semibold text-gray-900">{stats.pendingCaregivers}</p>
             </div>
           </div>
         </div>

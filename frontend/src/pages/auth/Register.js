@@ -98,8 +98,14 @@ const validationSchema = Yup.object({
     is: 'caregiver',
     then: (schema) =>
       schema
-        .oneOf(['Elderly Care', 'People with Disabilities', 'Both'], 'Select a valid category')
+        .oneOf(['Elderly Care', 'Persons with Disabilities'], 'Select a valid category')
         .required('Specialization category is required'),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  disabilitiesExplanation: Yup.string().when(['role', 'specializationCategory'], {
+    is: (role, specializationCategory) =>
+      role === 'caregiver' && specializationCategory === 'Persons with Disabilities',
+    then: (schema) => schema.required('Please explain the type of disabilities'),
     otherwise: (schema) => schema.notRequired(),
   }),
 });
@@ -132,22 +138,28 @@ export default function Register() {
     setFormError('');
     try {
       const formData = new FormData();
+      
+      // Append all form fields including location data
       Object.entries(values).forEach(([key, val]) => {
-        formData.append(key, Array.isArray(val) ? JSON.stringify(val) : val);
+        if (Array.isArray(val)) {
+          formData.append(key, JSON.stringify(val));
+        } else {
+          formData.append(key, val);
+        }
       });
+      
       if (values.role === 'caregiver' && documentFiles && documentFiles.length > 0) {
         Array.from(documentFiles).forEach(file => {
           formData.append('certifications', file);
         });
       }
+      if (values.role === 'caregiver' && values.specializationCategory === 'Persons with Disabilities') {
+        formData.set('disabilitiesExplanation', values.disabilitiesExplanation || '');
+      }
       const result = await register(formData, values.role);
       if (result.success) {
         if (result.role === 'caregiver') {
-          if (result.profileComplete && result.isVerified) {
-            navigate('/caregiver/dashboard');
-          } else {
-            navigate(`/caregiver-confirmation?name=${encodeURIComponent(values.username)}`);
-          }
+          navigate('/caregiver/dashboard');
         } else {
           navigate('/care-seeker/profile');
         }
@@ -193,6 +205,7 @@ export default function Register() {
             locationAddress: '',
             locationCoordinates: [],
             specializationCategory: '',
+            disabilitiesExplanation: '',
           }}
           validationSchema={validationSchema} // Apply the Yup validation schema defined above
           onSubmit={handleSubmit} // Call the handleSubmit function on form submission
@@ -274,6 +287,21 @@ export default function Register() {
                     </Field>
                     <ErrorMessage name="specializationCategory" component="p" className="text-sm text-red-600 mt-1" />
                   </div>
+                  {values.specializationCategory === 'Persons with Disabilities' && (
+                    <div>
+                      <label htmlFor="disabilitiesExplanation" className="block text-sm font-medium text-gray-700 mb-1">
+                        Please explain the type of disabilities (e.g., physical, mental, etc.)
+                      </label>
+                      <Field
+                        as="textarea"
+                        name="disabilitiesExplanation"
+                        rows={2}
+                        className="w-full px-4 py-2 border rounded-md shadow-sm"
+                        placeholder="Describe the type of disabilities you specialize in"
+                      />
+                      <ErrorMessage name="disabilitiesExplanation" component="p" className="text-sm text-red-600 mt-1" />
+                    </div>
+                  )}
                   <div>
                     <label htmlFor="certification" className="block text-sm font-medium text-gray-700 mb-1">Upload certifications</label>
                     <input

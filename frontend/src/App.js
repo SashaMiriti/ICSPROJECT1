@@ -30,6 +30,7 @@ import Feedback from './pages/care-seeker/Feedback';
 // Caregiver Pages
 import CaregiverDashboard from './pages/caregiver/Dashboard';
 import CaregiverProfileEdit from './pages/caregiver/ProfileEdit';
+import CaregiverOwnProfile from './pages/caregiver/CaregiverProfile';
 import CaregiverSchedule from './pages/caregiver/Schedule';
 import CaregiverBookings from './pages/caregiver/Bookings';
 import CaregiverReviews from './pages/caregiver/Reviews';
@@ -38,9 +39,16 @@ import UploadDocuments from './pages/caregiver/UploadDocuments';
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminProfile from './pages/admin/AdminProfile';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminCaregivers from './pages/admin/AdminCaregivers';
+import AdminCareSeekers from './pages/admin/AdminCareSeekers';
+import AdminReviews from './pages/admin/AdminReviews';
+import AdminItems from './pages/admin/AdminItems';
+import AdminCareNeeds from './pages/admin/AdminCareNeeds';
 import PendingCaregivers from './components/PendingCaregiver';
 import CaregiverDetail from './pages/admin/CaregiverDetail';
 import CareSeekerDetail from './pages/admin/CareSeekerDetail';
+import AdminBookings from './pages/admin/AdminBookings';
 
 // Protected Route Wrapper
 import ProtectedRoute from './components/layout/ProtectedRoute';
@@ -82,28 +90,39 @@ function App() {
         />
         <Navbar />
         <Routes>
-          <Route path="/caregiver-confirmation" element={<CaregiverConfirmation />} />
-          <Route path="/caregiver/complete-profile" element={<ProtectedRoute allowedRoles={['caregiver']}><CaregiverProfileCompletionForm /></ProtectedRoute>} />
-          <Route path="/caregiver/dashboard" element={<ProtectedRoute allowedRoles={['caregiver']}><CaregiverDashboard /></ProtectedRoute>} />
-          <Route path="/caregiver/profile" element={<ProtectedRoute allowedRoles={['caregiver']}><CaregiverProfileEdit /></ProtectedRoute>} />
-          <Route path="/caregiver/schedule" element={<ProtectedRoute allowedRoles={['caregiver']}><CaregiverSchedule /></ProtectedRoute>} />
-          <Route path="/caregiver/bookings" element={<ProtectedRoute allowedRoles={['caregiver']}><CaregiverBookings /></ProtectedRoute>} />
-          <Route path="/caregiver/reviews" element={<ProtectedRoute allowedRoles={['caregiver']}><CaregiverReviews /></ProtectedRoute>} />
-          <Route path="/caregiver/upload-docs" element={<ProtectedRoute allowedRoles={['caregiver']}><UploadDocuments /></ProtectedRoute>} />
-
+          {/* Admin Protected Routes - render outside Layout so only AdminLayout is used */}
           <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute allowedRoles={['admin']}><AdminProfile /></ProtectedRoute>} />
+          <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><AdminUsers /></ProtectedRoute>} />
+          <Route path="/admin/caregivers" element={<ProtectedRoute allowedRoles={['admin']}><AdminCaregivers /></ProtectedRoute>} />
+          <Route path="/admin/care-seekers" element={<ProtectedRoute allowedRoles={['admin']}><AdminCareSeekers /></ProtectedRoute>} />
+          <Route path="/admin/reviews" element={<ProtectedRoute allowedRoles={['admin']}><AdminReviews /></ProtectedRoute>} />
+          <Route path="/admin/items" element={<ProtectedRoute allowedRoles={['admin']}><AdminItems /></ProtectedRoute>} />
+          <Route path="/admin/care-needs" element={<ProtectedRoute allowedRoles={['admin']}><AdminCareNeeds /></ProtectedRoute>} />
           <Route path="/admin/pending-caregivers" element={<ProtectedRoute allowedRoles={['admin']}><PendingCaregivers /></ProtectedRoute>} />
           <Route path="/admin/caregiver/:id" element={<ProtectedRoute allowedRoles={['admin']}><CaregiverDetail /></ProtectedRoute>} />
           <Route path="/admin/care-seeker/:id" element={<ProtectedRoute allowedRoles={['admin']}><CareSeekerDetail /></ProtectedRoute>} />
+          <Route path="/admin/bookings" element={<ProtectedRoute allowedRoles={['admin']}><AdminBookings /></ProtectedRoute>} />
 
-          <Route path="/" element={<Layout />}>
+          {/* All other routes use Layout (with global Navbar) */}
+          <Route path="/*" element={<Layout />}> 
             {/* Public Routes */}
             <Route index element={<LandingPage />} />
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
             <Route path="forgot-password" element={<ForgotPassword />} />
             <Route path="reset-password/:resettoken" element={<ResetPassword />} />
+
+            {/* Caregiver Routes (now inside Layout) */}
+            <Route path="caregiver-confirmation" element={<CaregiverConfirmation />} />
+            <Route path="caregiver/complete-profile" element={<ProtectedRoute allowedRoles={['caregiver']}><CaregiverProfileCompletionForm /></ProtectedRoute>} />
+            <Route path="caregiver/dashboard" element={<ProtectedRoute allowedRoles={['caregiver']}><CaregiverDashboard /></ProtectedRoute>} />
+            <Route path="caregiver/profile" element={<ProtectedRoute allowedRoles={['caregiver']}><CaregiverOwnProfile /></ProtectedRoute>} />
+            <Route path="caregiver/profile/edit" element={<ProtectedRoute allowedRoles={['caregiver']}><CaregiverProfileEdit /></ProtectedRoute>} />
+            <Route path="caregiver/schedule" element={<ProtectedRoute allowedRoles={['caregiver']}><CaregiverSchedule /></ProtectedRoute>} />
+            <Route path="caregiver/bookings" element={<ProtectedRoute allowedRoles={['caregiver']}><CaregiverBookings /></ProtectedRoute>} />
+            <Route path="caregiver/reviews" element={<ProtectedRoute allowedRoles={['caregiver']}><CaregiverReviews /></ProtectedRoute>} />
+            <Route path="caregiver/upload-docs" element={<ProtectedRoute allowedRoles={['caregiver']}><UploadDocuments /></ProtectedRoute>} />
 
             {/* Care Seeker Protected Routes */}
             <Route path="care-seeker/dashboard" element={<ProtectedRoute allowedRoles={['careSeeker']}><CareSeekerDashboard /></ProtectedRoute>} />

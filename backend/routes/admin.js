@@ -29,14 +29,28 @@ const formatCaregiverData = (user, profile) => ({
 // ✅ Get all pending caregivers
 router.get('/pending-caregivers', async (req, res) => {
   try {
-    const pendingUsers = await User.find({ role: 'caregiver', status: 'pending' }).select('-password');
-    const caregiverProfiles = await Caregiver.find({ user: { $in: pendingUsers.map(u => u._id) } });
-
-    const combined = pendingUsers.map(user => {
-      const profile = caregiverProfiles.find(cp => cp.user.toString() === user._id.toString());
-      return formatCaregiverData(user, profile);
+    // Fetch all caregivers whose isVerified is false
+    const pendingCaregivers = await Caregiver.find({ isVerified: false }).populate('user');
+    // Format the data to include both user and caregiver profile info
+    const combined = pendingCaregivers.map(profile => {
+      const user = profile.user;
+      return {
+        _id: user?._id,
+        username: user?.username,
+        email: user?.email,
+        phone: user?.phone,
+        status: user?.status,
+        bio: profile.bio || '',
+        location: typeof profile.location === 'string' ? profile.location : profile.location?.address || '',
+        documents: profile.documents?.map(doc => ({
+          filename: `${doc.filename.replace(/\\/g, '/')}`,
+          status: doc.status
+        })) || [],
+        specializationCategory: profile.specializationCategory,
+        isVerified: profile.isVerified,
+        profileComplete: profile.profileComplete
+      };
     });
-
     res.json(combined);
   } catch (error) {
     console.error('Error fetching pending caregivers:', error);
@@ -44,7 +58,7 @@ router.get('/pending-caregivers', async (req, res) => {
   }
 });
 
-// ✅ Get specific caregiver by ID
+// ✅ Get specific caregiver by ID with full details
 router.get('/caregiver/:id', async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
@@ -53,7 +67,51 @@ router.get('/caregiver/:id', async (req, res) => {
     }
 
     const profile = await Caregiver.findOne({ user: user._id });
-    return res.json(formatCaregiverData(user, profile));
+    if (!profile) {
+      return res.status(404).json({ message: 'Caregiver profile not found' });
+    }
+
+    // Return comprehensive caregiver data
+    const caregiverData = {
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      phone: user.phone,
+      status: user.status,
+      // Profile information
+      fullName: profile.fullName,
+      contactNumber: profile.contactNumber,
+      bio: profile.bio,
+      experienceYears: profile.experienceYears,
+      specializationCategory: profile.specializationCategory,
+      languagesSpoken: profile.languagesSpoken,
+      tribalLanguage: profile.tribalLanguage,
+      gender: profile.gender,
+      culture: profile.culture,
+      religion: profile.religion,
+      qualifications: profile.qualifications,
+      servicesOffered: profile.servicesOffered,
+      // Location
+      location: profile.location,
+      // Pricing
+      hourlyRate: profile.hourlyRate,
+      priceType: profile.priceType,
+      // Availability
+      availability: profile.availability,
+      // Verification status
+      isVerified: profile.isVerified,
+      profileComplete: profile.profileComplete,
+      // Documents
+      documents: profile.documents?.map(doc => ({
+        filename: `${doc.filename.replace(/\\/g, '/')}`,
+        status: doc.status
+      })) || [],
+      // Timestamps
+      createdAt: profile.createdAt,
+      updatedAt: profile.updatedAt
+    };
+
+    return res.json(caregiverData);
   } catch (error) {
     console.error('Error fetching caregiver details:', error);
     res.status(500).json({ message: 'Server error' });
@@ -138,6 +196,70 @@ router.put('/reject-caregiver/:id', async (req, res) => {
   }
 });
 
+// ✅ Toggle caregiver verification status
+router.put('/toggle-verification/:id', async (req, res) => {
+  try {
+    const { isVerified } = req.body;
+    
+    // Update the caregiver profile verification status
+    const updatedProfile = await Caregiver.findOneAndUpdate(
+      { user: req.params.id },
+      { isVerified: isVerified },
+      { new: true }
+    );
+
+    if (!updatedProfile) {
+      return res.status(404).json({ message: 'Caregiver profile not found' });
+    }
+
+    // Also update user status to match verification
+    const userStatus = isVerified ? 'approved' : 'pending';
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      { status: userStatus },
+      { new: true }
+    );
+
+    // Send email notification
+    if (updatedUser && updatedUser.email) {
+      const subject = isVerified 
+        ? 'TogetherCare Verification Approved ✅' 
+        : 'TogetherCare Verification Removed ⚠️';
+      
+      const html = isVerified 
+        ? `
+          <p>Hello <strong>${updatedUser.username}</strong>,</p>
+          <p>Your caregiver profile has been <b style="color:green">verified</b>!</p>
+          <p>You can now <a href="http://localhost:3000/login">log in</a> to your TogetherCare account and start receiving bookings.</p>
+          <p>Thank you for joining us!</p>
+          <p style="margin-top:20px">— TogetherCare Admin Team</p>
+        `
+        : `
+          <p>Hello <strong>${updatedUser.username}</strong>,</p>
+          <p>Your caregiver profile verification has been <b style="color:orange">removed</b>.</p>
+          <p>You may need to provide additional documentation or information to be verified again.</p>
+          <p>Please contact support if you have any questions.</p>
+          <p style="margin-top:20px">— TogetherCare Admin Team</p>
+        `;
+
+      await sendEmail({
+        to: updatedUser.email,
+        subject: subject,
+        html: html
+      });
+    }
+
+    res.json({ 
+      message: `Caregiver verification ${isVerified ? 'approved' : 'removed'} successfully`, 
+      caregiver: updatedProfile,
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error('Toggle verification error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   GET /api/admin/statistics
 // @desc    Get admin dashboard statistics
 // @access  Private (admin)
@@ -147,19 +269,34 @@ router.get('/statistics', auth, async (req, res) => {
     if (user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized as admin' });
     }
+    
+    // Import additional models
+    const Review = require('../models/Review');
+    const Item = require('../models/Item');
+    const CareNeed = require('../models/CareNeed');
+    
+    const totalUsers = await User.countDocuments();
     const totalCareSeekers = await CareSeeker.countDocuments();
     const totalCaregivers = await Caregiver.countDocuments();
     const totalBookings = await Booking.countDocuments();
     const approvedBookings = await Booking.countDocuments({ status: 'accepted' });
     const pendingBookings = await Booking.countDocuments({ status: 'pending' });
     const cancelledBookings = await Booking.countDocuments({ status: 'cancelled' });
+    const totalReviews = await Review.countDocuments();
+    const totalItems = await Item.countDocuments();
+    const totalCareNeeds = await CareNeed.countDocuments();
+    
     res.json({
+      totalUsers,
       totalCareSeekers,
       totalCaregivers,
       totalBookings,
       approvedBookings,
       pendingBookings,
-      cancelledBookings
+      cancelledBookings,
+      totalReviews,
+      totalItems,
+      totalCareNeeds
     });
   } catch (err) {
     console.error(err.message);
@@ -241,6 +378,145 @@ router.delete('/care-seekers/:id', auth, async (req, res) => {
     // Delete the care seeker profile
     await CareSeeker.findByIdAndDelete(req.params.id);
     res.json({ message: 'Care seeker and related data deleted' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET /api/admin/users
+// @desc    Get all users
+// @access  Private (admin)
+router.get('/users', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized as admin' });
+    }
+    const users = await User.find().select('-password');
+    res.json(users);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET /api/admin/caregivers
+// @desc    Get all caregivers with user info
+// @access  Private (admin)
+router.get('/caregivers', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized as admin' });
+    }
+    const caregivers = await Caregiver.find().populate('user', 'email username phone');
+    res.json(caregivers);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET /api/admin/bookings
+// @desc    Get all bookings with filtering
+// @access  Private (admin)
+router.get('/bookings', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized as admin' });
+    }
+    
+    const { status } = req.query;
+    let query = {};
+    if (status) {
+      query.status = status;
+    }
+    
+    const bookings = await Booking.find(query)
+      .populate({
+        path: 'caregiver',
+        populate: { path: 'user', select: 'name email' }
+      })
+      .populate({
+        path: 'careSeeker',
+        populate: { path: 'user', select: 'name email' }
+      })
+      .sort({ createdAt: -1 });
+    
+    res.json(bookings);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET /api/admin/reviews
+// @desc    Get all reviews
+// @access  Private (admin)
+router.get('/reviews', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized as admin' });
+    }
+    
+    const Review = require('../models/Review');
+    const reviews = await Review.find()
+      .populate({
+        path: 'caregiver',
+        populate: { path: 'user', select: 'name email' }
+      })
+      .populate({
+        path: 'careSeeker',
+        populate: { path: 'user', select: 'name email' }
+      })
+      .populate('booking')
+      .sort({ createdAt: -1 });
+    
+    res.json(reviews);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET /api/admin/items
+// @desc    Get all items
+// @access  Private (admin)
+router.get('/items', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized as admin' });
+    }
+    
+    const Item = require('../models/Item');
+    const items = await Item.find().sort({ createdAt: -1 });
+    res.json(items);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET /api/admin/care-needs
+// @desc    Get all care needs
+// @access  Private (admin)
+router.get('/care-needs', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized as admin' });
+    }
+    
+    const CareNeed = require('../models/CareNeed');
+    const careNeeds = await CareNeed.find()
+      .populate('careSeeker', 'fullName')
+      .sort({ createdAt: -1 });
+    
+    res.json(careNeeds);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

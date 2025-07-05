@@ -47,15 +47,10 @@ const BookingSchema = new mongoose.Schema({
             required: true
         }
     },
-    price: {
+    budget: {
         type: Number,
         required: false,
         default: 0
-    },
-    priceType: {
-        type: String,
-        enum: ['Fixed', 'Bargainable'],
-        default: 'Fixed'
     }
 }, {
     timestamps: true

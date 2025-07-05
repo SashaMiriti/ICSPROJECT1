@@ -28,10 +28,12 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadingUser, setLoadingUser] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token') || '');
 
     // ✅ Automatically fetch user on app load if token exists
   const fetchUser = useCallback(async () => {
+    setLoadingUser(true);
     try {
       console.log('📡 Fetching user from /auth/me...');
       const res = await API.get('/auth/me', {
@@ -57,6 +59,8 @@ export const AuthProvider = ({ children }) => {
       setUserRole(userData.role);
     } catch (error) {
       console.error('❌ Error fetching user on startup:', error);
+    } finally {
+      setLoadingUser(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
@@ -65,6 +69,8 @@ export const AuthProvider = ({ children }) => {
     if (token && !user) {
       console.log('🔄 Fetching user on app load...');
       fetchUser();
+    } else {
+      setLoadingUser(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user]);
@@ -119,14 +125,17 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       const message = err.response?.data?.message;
 
-      // ✅ Handle unapproved caregiver redirection
-      if (
-        role === 'caregiver' &&
-        err.response?.data?.message === 'Caregiver not yet approved by admin' &&
-        err.response?.data?.user?.username
-      ) {
-        const unapprovedName = encodeURIComponent(err.response.data.user.username);
-        return { success: false, redirectTo: `/caregiver-confirmation?name=${unapprovedName}` };
+      // ✅ Handle caregiver status issues
+      if (role === 'caregiver' && err.response?.data?.user?.username) {
+        const username = encodeURIComponent(err.response.data.user.username);
+        
+        if (err.response?.data?.message === 'Caregiver not yet approved by admin') {
+          return { success: false, redirectTo: `/caregiver-confirmation?name=${username}` };
+        }
+        
+        if (err.response?.data?.message === 'Your caregiver application has been rejected. Please contact support if you believe this was a mistake.') {
+          return { success: false, redirectTo: `/caregiver-confirmation?name=${username}&status=rejected` };
+        }
       }
 
       console.error('Login error:', err.response?.data || err.message);
@@ -226,6 +235,7 @@ export const AuthProvider = ({ children }) => {
         token,
         isAuthenticated,
         loading,
+        loadingUser,
         login,
         register,
         logout,

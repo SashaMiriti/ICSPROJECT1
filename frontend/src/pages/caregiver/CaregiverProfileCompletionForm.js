@@ -103,16 +103,7 @@ const CaregiverProfileCompletionForm = () => {
       }
     };
 
-    // Add a timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      console.log('⏰ Timeout reached, forcing loading to false');
-      setLoading(false);
-      setError('Profile check timed out. Please refresh the page.');
-    }, 10000); // 10 second timeout
-
     checkProfile();
-
-    return () => clearTimeout(timeoutId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, navigate, user, setUser]);
 

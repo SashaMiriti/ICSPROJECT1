@@ -121,20 +121,24 @@ router.get('/caregiver/:id', async (req, res) => {
 // ✅ Approve caregiver and send email
 router.put('/approve-caregiver/:id', async (req, res) => {
   try {
-    // Approve the user (set status: 'approved')
-    const caregiverUser = await User.findByIdAndUpdate(
+
+    // Update User status to approved
+    const caregiver = await User.findByIdAndUpdate(
+
       req.params.id,
       { status: 'approved' },
       { new: true }
     );
 
-    // Also set isVerified: true on the Caregiver profile
+    // Update Caregiver isVerified to true
     await Caregiver.findOneAndUpdate(
       { user: req.params.id },
-      { isVerified: true }
+      { isVerified: true },
+      { new: true }
     );
 
-    if (caregiverUser && caregiverUser.email) {
+    if (caregiver && caregiver.email) {
+
       await sendEmail({
         to: caregiverUser.email,
         subject: 'TogetherCare Approval Notification ✅',
@@ -158,9 +162,17 @@ router.put('/approve-caregiver/:id', async (req, res) => {
 // ✅ Reject caregiver and send email
 router.put('/reject-caregiver/:id', async (req, res) => {
   try {
+    // Update User status to rejected
     const caregiver = await User.findByIdAndUpdate(
       req.params.id,
       { status: 'rejected' },
+      { new: true }
+    );
+
+    // Update Caregiver isVerified to false
+    await Caregiver.findOneAndUpdate(
+      { user: req.params.id },
+      { isVerified: false },
       { new: true }
     );
 

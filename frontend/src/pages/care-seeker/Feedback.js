@@ -64,9 +64,10 @@ export default function Feedback() {
 
       const bookingData = bookingResponse.data;
       
-      // Verify booking belongs to current user and is completed
-      if (bookingData.status !== 'completed') {
-        toast.error('You can only review completed bookings');
+      // Verify booking belongs to current user and is eligible for review
+      const now = new Date();
+      if (!(bookingData.status === 'completed' || (bookingData.status === 'accepted' && new Date(bookingData.endTime) < now))) {
+        toast.error('You can only review bookings that are completed or have ended.');
         navigate('/care-seeker/bookings');
         return;
       }

@@ -67,7 +67,7 @@ export default function AdminReviews() {
 
   useEffect(() => {
     fetchReviews();
-  }, []);
+  }, [fetchReviews]);
 
   const handleDeleteReview = async (reviewId, reviewerName) => {
     if (!window.confirm(`Are you sure you want to delete this review by ${reviewerName}? This action cannot be undone.`)) {

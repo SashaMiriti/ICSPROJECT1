@@ -84,6 +84,21 @@ export default function Bookings() {
     }
   };
 
+  const handleMarkAsComplete = async (bookingId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`http://localhost:5000/api/bookings/${bookingId}`,
+        { status: 'completed' },
+        { headers: { 'x-auth-token': token } }
+      );
+      toast.success('Booking marked as completed!');
+      fetchBookings();
+    } catch (error) {
+      console.error('Error marking booking as complete:', error);
+      toast.error(error.response?.data?.message || 'Failed to mark as complete.');
+    }
+  };
+
   const formatDateTime = (dateTimeString) => {
     const date = new Date(dateTimeString);
     return {
@@ -222,6 +237,25 @@ export default function Bookings() {
                     <div className="mb-2">
                       <span className="font-medium text-gray-700">Status:</span> <span className={classNames(statusStyles[booking.status], 'inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ml-1')}>{statusLabels[booking.status]}</span>
                     </div>
+                    {/* Always visible action buttons below status */}
+                    <div className="flex flex-col space-y-2 mb-2">
+                      {booking.status === 'accepted' && new Date(booking.endTime) < new Date() && (
+                        <button
+                          onClick={() => handleMarkAsComplete(booking._id)}
+                          className="text-blue-600 hover:text-blue-900 font-medium"
+                        >
+                          Mark as Complete
+                        </button>
+                      )}
+                      {(booking.status === 'completed' || (booking.status === 'accepted' && new Date(booking.endTime) < new Date())) && (
+                        <Link
+                          to={`/care-seeker/feedback/${booking._id}`}
+                          className="text-primary-600 hover:text-primary-900 font-medium"
+                        >
+                          Leave Review
+                        </Link>
+                      )}
+                    </div>
                   </div>
                   {/* Toggle Caregiver Details */}
                   <button
@@ -257,7 +291,7 @@ export default function Bookings() {
                     </div>
                   )}
                   {/* Actions */}
-                  <div className="mt-4 flex space-x-2">
+                  <div className="mt-4 flex flex-col space-y-2">
                     {booking.status === 'pending' && (
                       <button
                         onClick={() => handleCancelBooking(booking._id)}
@@ -265,17 +299,6 @@ export default function Bookings() {
                       >
                         Cancel
                       </button>
-                    )}
-                    {booking.status === 'accepted' && (
-                      <span className="text-green-600 font-medium">Confirmed</span>
-                    )}
-                    {booking.status === 'completed' && (
-                      <Link
-                        to={`/care-seeker/feedback/${booking._id}`}
-                        className="text-primary-600 hover:text-primary-900 font-medium"
-                      >
-                        Leave Review
-                      </Link>
                     )}
                   </div>
                 </div>

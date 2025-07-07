@@ -272,9 +272,16 @@ router.post('/reviews', [auth, [
             return res.status(403).json({ message: 'Not authorized to review this booking' });
         }
 
-        // Check if booking is completed
+        // Check if booking is completed or eligible for completion
         if (booking.status !== 'completed') {
+          const now = new Date();
+          if (booking.status === 'accepted' && new Date(booking.endTime) < now) {
+            // Auto-complete the booking
+            booking.status = 'completed';
+            await booking.save();
+          } else {
             return res.status(400).json({ message: 'Can only review completed bookings' });
+          }
         }
 
         // Check if review already exists

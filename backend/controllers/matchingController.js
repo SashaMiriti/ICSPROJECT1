@@ -12,12 +12,12 @@ exports.matchCaregivers = async (req, res) => {
 
     const [lng, lat] = locationCoordinates;
 
-    // Step 1: Find nearby & verified caregivers (within 50 km radius)
+    // Step 1: Find nearby & verified caregivers (within 25 km radius)
     const nearbyCaregivers = await Caregiver.find({
       isVerified: true,
       'location.coordinates': {
         $geoWithin: {
-          $centerSphere: [[lng, lat], 50 / 6378.1], // Earth radius in km
+          $centerSphere: [[lng, lat], 25 / 6378.1], // Earth radius in km
         },
       },
     });

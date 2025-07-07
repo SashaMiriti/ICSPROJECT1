@@ -37,12 +37,12 @@ export default function SearchCaregivers() {
     return matchesSearch && matchesService && matchesRate;
   });
 
-  const handleViewProfile = (id) => {
-    navigate(`/care-seeker/caregiver/${id}`);
+  const handleViewProfile = (id, userId) => {
+    navigate(`/care-seeker/caregiver/${userId || id}`);
   };
 
-  const handleBook = (id) => {
-    navigate(`/care-seeker/booking/${id}`);
+  const handleBook = (id, userId) => {
+    navigate(`/care-seeker/booking/${userId || id}`);
   };
 
   return (
@@ -127,14 +127,14 @@ export default function SearchCaregivers() {
                   <div className="text-gray-600 mb-4">{c.location?.address || 'Location not specified'}</div>
                   <div className="flex gap-4 w-full">
                     <button 
-                      onClick={() => handleViewProfile(c._id)} 
+                      onClick={() => handleViewProfile(c._id, c.user?._id)} 
                       className="flex-1 bg-blue-700 text-white text-lg font-bold py-3 rounded hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-400" 
                       aria-label={`View profile of ${c.fullName}`}
                     >
                       View Profile
                     </button>
                     <button 
-                      onClick={() => handleBook(c._id)} 
+                      onClick={() => handleBook(c._id, c.user?._id)} 
                       className="flex-1 bg-green-700 text-white text-lg font-bold py-3 rounded hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-400" 
                       aria-label={`Book ${c.fullName}`} 
                       disabled={!c.isAvailable} 
@@ -176,14 +176,14 @@ export default function SearchCaregivers() {
                   <div className="text-gray-600 mb-4">{c.location?.address || 'Location not specified'}</div>
                   <div className="flex gap-4 w-full">
                     <button 
-                      onClick={() => handleViewProfile(c._id)} 
+                      onClick={() => handleViewProfile(c._id, c.user?._id)} 
                       className="flex-1 bg-blue-700 text-white text-lg font-bold py-3 rounded hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-400" 
                       aria-label={`View profile of ${c.fullName}`}
                     >
                       View Profile
                     </button>
                     <button 
-                      onClick={() => handleBook(c._id)} 
+                      onClick={() => handleBook(c._id, c.user?._id)} 
                       className="flex-1 bg-green-700 text-white text-lg font-bold py-3 rounded hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-400" 
                       aria-label={`Book ${c.fullName}`} 
                       disabled={!c.isAvailable} 

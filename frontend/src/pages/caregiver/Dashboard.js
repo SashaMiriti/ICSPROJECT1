@@ -8,7 +8,6 @@ export default function CaregiverDashboard() {
   const navigate = useNavigate();
   const [caregiverProfile, setCaregiverProfile] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [userTimeout, setUserTimeout] = useState(false);
@@ -74,12 +73,6 @@ export default function CaregiverDashboard() {
   }, [dropdownOpen]);
 
   const fullName = caregiverProfile?.fullName || user?.username || user?.name || 'Caregiver';
-  const initial = fullName?.charAt(0)?.toUpperCase() || 'C';
-
-  const handleLogout = () => {
-    if (logout) logout();
-    navigate('/login');
-  };
 
   if (userTimeout && !user) {
     return (

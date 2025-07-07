@@ -26,6 +26,14 @@ const formatCaregiverData = (user, profile) => ({
   })) || []
 });
 
+// Helper for pagination
+function getPaginationParams(req) {
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.max(1, parseInt(req.query.limit) || 20);
+  const skip = (page - 1) * limit;
+  return { page, limit, skip };
+}
+
 // ✅ Get all pending caregivers with comprehensive details
 router.get('/pending-caregivers', auth, async (req, res) => {
   try {
@@ -71,7 +79,8 @@ router.get('/pending-caregivers', auth, async (req, res) => {
         documents: profile.documents?.map(doc => ({
           filename: `${doc.filename.replace(/\\/g, '/')}`,
           status: doc.status,
-          originalName: doc.originalName || doc.filename.split('/').pop()
+          originalName: doc.originalName || doc.filename.split('/').pop(),
+          url: `${BASE_URL}/uploads/certifications/${doc.filename.replace(/\\/g, '/').split('/').pop()}`
         })) || [],
         // Verification status
         isVerified: profile.isVerified,
@@ -143,7 +152,8 @@ router.get('/caregiver/:id', auth, async (req, res) => {
       documents: profile.documents?.map(doc => ({
         filename: `${doc.filename.replace(/\\/g, '/')}`,
         status: doc.status,
-        originalName: doc.originalName || doc.filename.split('/').pop()
+        originalName: doc.originalName || doc.filename.split('/').pop(),
+        url: `${BASE_URL}/uploads/certifications/${doc.filename.replace(/\\/g, '/').split('/').pop()}`
       })) || [],
       // Timestamps
       createdAt: profile.createdAt,
@@ -396,8 +406,16 @@ router.get('/care-seekers', auth, async (req, res) => {
     if (user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized as admin' });
     }
-    const careSeekers = await CareSeeker.find().populate('user', 'email');
-    res.json(careSeekers);
+    const { page, limit, skip } = getPaginationParams(req);
+    const careSeekers = await CareSeeker.find().populate('user', 'email').skip(skip).limit(limit);
+    const total = await CareSeeker.countDocuments();
+    res.json({
+      data: careSeekers,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -476,8 +494,16 @@ router.get('/users', auth, async (req, res) => {
     if (user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized as admin' });
     }
-    const users = await User.find().select('-password');
-    res.json(users);
+    const { page, limit, skip } = getPaginationParams(req);
+    const users = await User.find().select('-password').skip(skip).limit(limit);
+    const total = await User.countDocuments();
+    res.json({
+      data: users,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -504,9 +530,12 @@ router.get('/caregivers', auth, async (req, res) => {
       query.isVerified = false;
     }
     
+    const { page, limit, skip } = getPaginationParams(req);
+    let caregivers, total;
+    
     // Search functionality
     if (search) {
-      const caregivers = await Caregiver.find(query).populate({
+      caregivers = await Caregiver.find(query).populate({
         path: 'user',
         match: {
           $or: [
@@ -515,38 +544,13 @@ router.get('/caregivers', auth, async (req, res) => {
           ]
         },
         select: 'email username phone status createdAt'
-      });
-      
-      // Filter out caregivers with no matching user
-      const filteredCaregivers = caregivers.filter(caregiver => caregiver.user);
-      
-      // Format the response
-      const formattedCaregivers = filteredCaregivers.map(profile => {
-        const user = profile.user;
-        return {
-          _id: user._id,
-          username: user.username,
-          email: user.email,
-          phone: user.phone,
-          status: user.status,
-          fullName: profile.fullName,
-          specializationCategory: profile.specializationCategory,
-          experienceYears: profile.experienceYears,
-          location: typeof profile.location === 'string' ? profile.location : profile.location?.address || '',
-          hourlyRate: profile.hourlyRate,
-          isVerified: profile.isVerified,
-          profileComplete: profile.profileComplete,
-          documents: profile.documents?.length || 0,
-          createdAt: profile.createdAt,
-          updatedAt: profile.updatedAt
-        };
-      });
-      
-      return res.json(formattedCaregivers);
+      }).skip(skip).limit(limit);
+      total = await Caregiver.countDocuments(query);
+      caregivers = caregivers.filter(caregiver => caregiver.user);
+    } else {
+      caregivers = await Caregiver.find(query).populate('user', 'email username phone status createdAt').skip(skip).limit(limit);
+      total = await Caregiver.countDocuments(query);
     }
-    
-    // Regular query without search
-    const caregivers = await Caregiver.find(query).populate('user', 'email username phone status createdAt');
     
     // Format the response
     const formattedCaregivers = caregivers.map(profile => {
@@ -570,7 +574,13 @@ router.get('/caregivers', auth, async (req, res) => {
       };
     });
     
-    res.json(formattedCaregivers);
+    res.json({
+      data: formattedCaregivers,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -593,6 +603,7 @@ router.get('/bookings', auth, async (req, res) => {
       query.status = status;
     }
     
+    const { page, limit, skip } = getPaginationParams(req);
     const bookings = await Booking.find(query)
       .populate({
         path: 'caregiver',
@@ -602,9 +613,18 @@ router.get('/bookings', auth, async (req, res) => {
         path: 'careSeeker',
         populate: { path: 'user', select: 'name email' }
       })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    const total = await Booking.countDocuments(query);
     
-    res.json(bookings);
+    res.json({
+      data: bookings,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -622,6 +642,7 @@ router.get('/reviews', auth, async (req, res) => {
     }
     
     const Review = require('../models/Review');
+    const { page, limit, skip } = getPaginationParams(req);
     const reviews = await Review.find()
       .populate({
         path: 'caregiver',
@@ -632,9 +653,18 @@ router.get('/reviews', auth, async (req, res) => {
         populate: { path: 'user', select: 'name email' }
       })
       .populate('booking')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    const total = await Review.countDocuments();
     
-    res.json(reviews);
+    res.json({
+      data: reviews,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -652,8 +682,17 @@ router.get('/items', auth, async (req, res) => {
     }
     
     const Item = require('../models/Item');
-    const items = await Item.find().sort({ createdAt: -1 });
-    res.json(items);
+    const { page, limit, skip } = getPaginationParams(req);
+    const items = await Item.find().sort({ createdAt: -1 }).skip(skip).limit(limit);
+    const total = await Item.countDocuments();
+    
+    res.json({
+      data: items,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -671,11 +710,21 @@ router.get('/care-needs', auth, async (req, res) => {
     }
     
     const CareNeed = require('../models/CareNeed');
+    const { page, limit, skip } = getPaginationParams(req);
     const careNeeds = await CareNeed.find()
       .populate('careSeeker', 'fullName')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    const total = await CareNeed.countDocuments();
     
-    res.json(careNeeds);
+    res.json({
+      data: careNeeds,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

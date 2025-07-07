@@ -167,6 +167,29 @@ router.get('/:id', async (req, res) => {
         res.status(500).send('Server Error');
     }
 });
+// @route   GET /api/caregivers/:id/profile
+// @desc    Get public caregiver profile by user ID or caregiver ID (excluding certificates/documents)
+// @access  Public
+router.get('/:id/profile', async (req, res) => {
+    try {
+        // Try to find by user ID first
+        let profile = await Caregiver.findOne({ user: req.params.id })
+            .populate('user', 'name email status');
+        // If not found, try by caregiver document _id
+        if (!profile && req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+            profile = await Caregiver.findById(req.params.id)
+                .populate('user', 'name email status');
+        }
+        if (!profile) {
+            return res.status(404).json({ message: 'Caregiver not found' });
+        }
+        // Exclude certificates/documents
+        const { documents, ...publicProfile } = profile.toObject();
+        res.json(publicProfile);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 // @route   PUT /api/caregivers/profile
 // @desc    Update caregiver profile
 // @access  Private
@@ -284,7 +307,7 @@ router.put('/schedule', auth, async (req, res) => {
             return res.status(404).json({ message: 'Caregiver not found' });
         }
 
-        console.log('🔍 Found caregiver:', caregiver._id);
+        console.log('�� Found caregiver:', caregiver._id);
 
         // Update only the availability field using findOneAndUpdate to avoid validation issues
         const updatedCaregiver = await Caregiver.findOneAndUpdate(

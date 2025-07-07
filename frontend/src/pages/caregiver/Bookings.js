@@ -191,7 +191,7 @@ export default function Bookings() {
                                 </p>
                                 <p>Duration: {duration}</p>
                                 <p>Location: {booking.location?.address || 'Location not specified'}</p>
-                                <p>Price: Ksh {booking.price}</p>
+                                <p>Budget: Ksh {booking.budget !== undefined ? booking.budget : 'Not specified'}</p>
                               </div>
                             </div>
                           </div>

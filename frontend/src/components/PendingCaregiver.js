@@ -1,6 +1,6 @@
 // src/components/PendingCaregiver.js
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from './ui/button';
@@ -23,7 +23,7 @@ const PendingCaregiver = () => {
   const [updating, setUpdating] = useState({});
   const navigate = useNavigate();
 
-  const fetchPendingCaregivers = async () => {
+  const fetchPendingCaregivers = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
@@ -39,7 +39,7 @@ const PendingCaregiver = () => {
       });
       
       console.log('Pending caregivers data:', response.data); // Debug log
-      setPendingCaregivers(response.data);
+      setPendingCaregivers(Array.isArray(response.data.data) ? response.data.data : response.data);
     } catch (error) {
       console.error('Error fetching pending caregivers:', error);
       if (error.response?.status === 403) {
@@ -54,11 +54,11 @@ const PendingCaregiver = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
     fetchPendingCaregivers();
-  }, []);
+  }, [fetchPendingCaregivers]);
 
   const handleToggleVerification = async (caregiverId, currentStatus) => {
     try {

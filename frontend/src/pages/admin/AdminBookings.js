@@ -27,7 +27,7 @@ export default function AdminBookings() {
         const res = await axios.get(url, {
           headers: { 'x-auth-token': token }
         });
-        setBookings(res.data);
+        setBookings(Array.isArray(res.data.data) ? res.data.data : res.data);
       } catch (err) {
         setError('Failed to fetch bookings');
       } finally {

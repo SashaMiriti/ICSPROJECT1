@@ -6,7 +6,6 @@ import toast from 'react-hot-toast';
 import AdminLayout from '../../components/layout/AdminLayout';
 
 export default function AdminItems() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +42,7 @@ export default function AdminItems() {
 
   useEffect(() => {
     fetchItems();
-  }, []);
+  }, [fetchItems]);
 
   const handleDeleteItem = async (itemId, itemName) => {
     if (!window.confirm(`Are you sure you want to delete item "${itemName}"? This action cannot be undone.`)) {

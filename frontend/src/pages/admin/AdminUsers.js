@@ -27,7 +27,7 @@ export default function AdminUsers() {
       const response = await axios.get('http://localhost:5000/api/admin/users', {
         headers: { 'x-auth-token': token }
       });
-      setUsers(response.data);
+      setUsers(Array.isArray(response.data.data) ? response.data.data : response.data);
 
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -44,7 +44,7 @@ export default function AdminUsers() {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   const handleDeleteUser = async (userId, username) => {
     if (!window.confirm(`Are you sure you want to delete user ${username}? This action cannot be undone.`)) {

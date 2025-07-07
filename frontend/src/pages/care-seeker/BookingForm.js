@@ -125,6 +125,7 @@ export default function BookingForm() {
           coordinates: formData.location.coordinates
         },
         budget: formData.budget,
+        actualPrice: caregiver.hourlyRate,
       };
 
       // Submit booking
@@ -440,7 +441,8 @@ export default function BookingForm() {
         {caregiver && (
           <div className="mt-4">
             <p className="text-sm text-gray-700">Caregiver's Rate: <span className="font-bold">Ksh {caregiver.hourlyRate} per hour</span></p>
-            <p className="text-sm text-gray-700">Total Cost: <span className="font-bold">Ksh {totalCost}</span></p>
+            <p className="text-sm text-gray-700">Total Cost (based on caregiver's rate): <span className="font-bold">Ksh {totalCost}</span></p>
+            <p className="text-xs text-gray-500 mt-1">Your proposed budget is for your own reference. The actual price is determined by the caregiver's rate.</p>
           </div>
         )}
       </div>

@@ -43,12 +43,17 @@ export default function CaregiverProfile() {
         headers: { 'x-auth-token': token }
       });
       setCaregiver(response.data);
-      // Optionally fetch reviews if you want to show them
-      // const reviewsRes = await axios.get(`http://localhost:5000/api/caregivers/${response.data._id}/reviews`, { headers: { 'x-auth-token': token } });
-      // setReviews(reviewsRes.data);
+      // Fetch reviews for this caregiver
+      if (response.data && response.data._id) {
+        const reviewsRes = await axios.get(`http://localhost:5000/api/caregivers/${response.data._id}/reviews`, { headers: { 'x-auth-token': token } });
+        setReviews(reviewsRes.data);
+      } else {
+        setReviews([]);
+      }
     } catch (err) {
       console.error('Error fetching caregiver profile:', err);
       setError('Failed to fetch caregiver profile');
+      setReviews([]);
     } finally {
       setLoading(false);
     }

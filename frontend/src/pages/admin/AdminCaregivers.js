@@ -6,7 +6,6 @@ import toast from 'react-hot-toast';
 import AdminLayout from '../../components/layout/AdminLayout';
 
 export default function AdminCaregivers() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [caregivers, setCaregivers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +43,7 @@ export default function AdminCaregivers() {
 
   useEffect(() => {
     fetchCaregivers();
-  }, []);
+  }, [fetchCaregivers]);
 
   const handleDeleteCaregiver = async (caregiverId, caregiverName) => {
     if (!window.confirm(`Are you sure you want to delete caregiver ${caregiverName}? This action cannot be undone.`)) {

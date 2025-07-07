@@ -156,14 +156,6 @@ const CareSeekerProfilePage = () => {
         }
     };
 
-    const handleMultiSelectChange = (e) => {
-        const { name, options } = e.target;
-        const value = Array.from(options)
-            .filter(option => option.selected)
-            .map(option => option.value);
-        setProfile(prev => ({ ...prev, [name]: value }));
-    };
-
     const handleDateChange = (dates) => {
         setSelectedDates(dates || []);
         setTimeSlots(prev => {

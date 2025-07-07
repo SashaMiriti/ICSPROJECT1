@@ -6,7 +6,6 @@ import toast from 'react-hot-toast';
 import AdminLayout from '../../components/layout/AdminLayout';
 
 export default function AdminCareNeeds() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [careNeeds, setCareNeeds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +42,7 @@ export default function AdminCareNeeds() {
 
   useEffect(() => {
     fetchCareNeeds();
-  }, []);
+  }, [fetchCareNeeds]);
 
   const handleDeleteCareNeed = async (careNeedId, careNeedTitle) => {
     if (!window.confirm(`Are you sure you want to delete care need "${careNeedTitle}"? This action cannot be undone.`)) {

@@ -35,6 +35,16 @@ export default function BookingDetails({ booking, onConfirm, onCancel }) {
         {booking.status === 'Confirmed' && (
           <span className="text-green-800 text-xl font-bold" aria-live="polite">Your booking is confirmed!</span>
         )}
+        {/* Mark as Complete button for accepted bookings with endTime in the past */}
+        {booking.status === 'accepted' && new Date(booking.endTime) < new Date() && (
+          <button
+            onClick={booking.onMarkComplete}
+            className="w-full bg-blue-700 text-white text-xl font-bold py-4 rounded hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-400"
+            aria-label="Mark Booking as Complete"
+          >
+            Mark as Complete
+          </button>
+        )}
       </div>
     </div>
   );

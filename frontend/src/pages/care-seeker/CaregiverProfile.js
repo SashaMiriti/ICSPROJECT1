@@ -4,45 +4,17 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
-function StarRating({ rating }) {
-  return (
-    <div className="flex items-center">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <svg
-          key={star}
-          className={`h-5 w-5 ${
-            star <= rating ? 'text-yellow-400' : 'text-gray-300'
-          }`}
-          viewBox="0 0 20 20"
-          fill="currentColor"
-          aria-hidden="true"
-        >
-          <path
-            fillRule="evenodd"
-            d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401z"
-            clipRule="evenodd"
-          />
-        </svg>
-      ))}
-    </div>
-  );
-}
-
 export default function CaregiverProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [caregiver, setCaregiver] = useState(null);
-  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   const fetchCaregiverProfile = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`/api/caregivers/profile`, {
-        headers: { 'x-auth-token': token }
-      });
+      // Fetch caregiver profile using the robust endpoint
+      const response = await axios.get(`/api/caregivers/${id}/profile`);
       setCaregiver(response.data);
     } catch (error) {
       console.error('Error fetching caregiver profile:', error);
@@ -56,15 +28,6 @@ export default function CaregiverProfile() {
     fetchCaregiverProfile();
   }, [fetchCaregiverProfile]);
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -76,11 +39,11 @@ export default function CaregiverProfile() {
     );
   }
 
-  if (error || !caregiver) {
+  if (!caregiver) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error || 'Caregiver not found'}</p>
+          <p className="text-red-600 mb-4">Caregiver not found</p>
           <button
             onClick={() => navigate('/care-seeker/search')}
             className="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700"
@@ -91,10 +54,6 @@ export default function CaregiverProfile() {
       </div>
     );
   }
-
-  const averageRating = reviews.length > 0 
-    ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length 
-    : 0;
 
   return (
     <div className="min-h-screen bg-gray-100 py-8">
@@ -114,10 +73,7 @@ export default function CaregiverProfile() {
                   {caregiver.experienceYears || 0} years of experience
                 </p>
                 <div className="flex items-center mt-2">
-                  <StarRating rating={Math.round(averageRating)} />
-                  <span className="ml-2 text-white">
-                    {averageRating.toFixed(1)} ({reviews.length} reviews)
-                  </span>
+                  {/* Remove StarRating and reviews count */}
                 </div>
               </div>
             </div>
@@ -178,42 +134,6 @@ export default function CaregiverProfile() {
                   </div>
                 )}
               </div>
-            </div>
-
-            {/* Reviews Section */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Reviews</h2>
-              
-              {reviews.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No reviews yet</p>
-              ) : (
-                <div className="space-y-6">
-                  {reviews.map((review) => (
-                    <div key={review._id} className="border-b border-gray-200 pb-6 last:border-b-0">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 bg-primary-100 rounded-full flex items-center justify-center text-sm font-bold text-primary-700">
-                            {review.careSeeker?.user?.name?.[0] || 'A'}
-                          </div>
-                          <div className="ml-3">
-                            <h4 className="font-medium text-gray-900">
-                              {review.careSeeker?.user?.name || 'Anonymous'}
-                            </h4>
-                            <p className="text-sm text-gray-500">{review.booking?.service}</p>
-                          </div>
-                        </div>
-                        <span className="text-sm text-gray-500">
-                          {formatDate(review.createdAt)}
-                        </span>
-                      </div>
-                      <div className="mb-2">
-                        <StarRating rating={review.rating} />
-                      </div>
-                      <p className="text-gray-600">{review.comment}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
 

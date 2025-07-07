@@ -400,87 +400,129 @@ const CareSeekerProfilePage = () => {
                         <form onSubmit={handleSubmit} className="space-y-10">
                             {/* Basic Info */}
                             <section className="bg-gray-50 rounded-xl p-6 shadow-sm">
-                                <h2 className="text-lg font-bold text-primary-700 mb-4 flex items-center gap-2"><span>👤</span> Basic Information</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <h2 className="text-2xl font-bold text-primary-700 mb-4 flex items-center gap-2"><span>👤</span> Basic Information</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-                                        <input type="text" name="fullName" value={profile.fullName || ''} onChange={handleChange} required className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Your full name" />
+                                        <label className="block text-lg font-semibold text-gray-700 mb-2">Full Name *</label>
+                                        <input type="text" name="fullName" value={profile.fullName || ''} onChange={handleChange} required className="w-full p-4 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Your full name" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number *</label>
-                                        <input type="text" name="contactNumber" value={profile.contactNumber || ''} onChange={handleChange} required className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. 0712345678" />
+                                        <label className="block text-lg font-semibold text-gray-700 mb-2">Contact Number *</label>
+                                        <input type="text" name="contactNumber" value={profile.contactNumber || ''} onChange={handleChange} required className="w-full p-4 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. 0712345678" />
                                     </div>
                                 </div>
                             </section>
                             {/* Care Needs */}
                             <section className="bg-gray-50 rounded-xl p-6 shadow-sm">
-                                <h2 className="text-lg font-bold text-primary-700 mb-4 flex items-center gap-2"><span>🩺</span> Care Needs</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <h2 className="text-2xl font-bold text-primary-700 mb-4 flex items-center gap-2"><span>🩺</span> Care Needs</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Type of Care Needed *</label>
-                                        <select name="careType" multiple value={profile.careType} onChange={handleMultiSelectChange} required className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <label className="block text-lg font-semibold text-gray-700 mb-2">Type of Care Needed *</label>
+                                        <div className="flex flex-col gap-2">
                                             {careTypeOptions.map(option => (
-                                                <option key={option} value={option}>{option}</option>
+                                                <label key={option} className="flex items-center text-lg">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={profile.careType.includes(option)}
+                                                        onChange={e => {
+                                                            setProfile(prev => ({
+                                                                ...prev,
+                                                                careType: e.target.checked
+                                                                    ? [...prev.careType, option]
+                                                                    : prev.careType.filter(val => val !== option)
+                                                            }));
+                                                        }}
+                                                        className="mr-3 w-5 h-5"
+                                                    />
+                                                    {option}
+                                                </label>
                                             ))}
-                                        </select>
-                                        <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
+                                        </div>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Medical Conditions</label>
-                                        <input type="text" name="medicalConditions" value={profile.medicalConditions.join(', ')} onChange={e => setProfile(prev => ({ ...prev, medicalConditions: e.target.value.split(',').map(s => s.trim()).filter(s => s) }))} placeholder="e.g., Diabetes, Hypertension" className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                        <label className="block text-lg font-semibold text-gray-700 mb-2">Medical Conditions</label>
+                                        <input type="text" name="medicalConditions" value={profile.medicalConditions.join(', ')} onChange={e => setProfile(prev => ({ ...prev, medicalConditions: e.target.value.split(',').map(s => s.trim()).filter(s => s) }))} placeholder="e.g., Diabetes, Hypertension" className="w-full p-4 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Required Tasks *</label>
-                                        <select name="requiredTasks" multiple value={profile.requiredTasks} onChange={handleMultiSelectChange} required className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <label className="block text-lg font-semibold text-gray-700 mb-2">Required Tasks *</label>
+                                        <div className="flex flex-col gap-2">
                                             {requiredTaskOptions.map(option => (
-                                                <option key={option} value={option}>{option}</option>
+                                                <label key={option} className="flex items-center text-lg">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={profile.requiredTasks.includes(option)}
+                                                        onChange={e => {
+                                                            setProfile(prev => ({
+                                                                ...prev,
+                                                                requiredTasks: e.target.checked
+                                                                    ? [...prev.requiredTasks, option]
+                                                                    : prev.requiredTasks.filter(val => val !== option)
+                                                            }));
+                                                        }}
+                                                        className="mr-3 w-5 h-5"
+                                                    />
+                                                    {option}
+                                                </label>
                                             ))}
-                                        </select>
-                                        <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
+                                        </div>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Special Needs or Requests</label>
-                                        <textarea name="specialNeeds" value={profile.specialNeeds} onChange={handleChange} rows={2} placeholder="Describe any special requirements..." className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                        <label className="block text-lg font-semibold text-gray-700 mb-2">Special Needs or Requests</label>
+                                        <textarea name="specialNeeds" value={profile.specialNeeds} onChange={handleChange} rows={2} placeholder="Describe any special requirements..." className="w-full p-4 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Budget (Ksh per hour/day)</label>
-                                        <input type="number" name="budget" value={profile.budget || ''} onChange={handleChange} placeholder="e.g., 500" className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                        <label className="block text-lg font-semibold text-gray-700 mb-2">Budget (Ksh per hour/day)</label>
+                                        <input type="number" name="budget" value={profile.budget || ''} onChange={handleChange} placeholder="e.g., 500" className="w-full p-4 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                                     </div>
                                 </div>
                             </section>
                             {/* Preferences */}
                             <section className="bg-gray-50 rounded-xl p-6 shadow-sm">
-                                <h2 className="text-lg font-bold text-primary-700 mb-4 flex items-center gap-2"><span>⭐</span> Preferences</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <h2 className="text-2xl font-bold text-primary-700 mb-4 flex items-center gap-2"><span>⭐</span> Preferences</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Caregiver Gender Preference</label>
-                                        <select name="caregiverGenderPreference" value={profile.caregiverGenderPreference} onChange={handleChange} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <label className="block text-lg font-semibold text-gray-700 mb-2">Caregiver Gender Preference</label>
+                                        <select name="caregiverGenderPreference" value={profile.caregiverGenderPreference} onChange={handleChange} className="w-full p-4 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                                             {genderOptions.map(option => (
                                                 <option key={option} value={option}>{option}</option>
                                             ))}
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Language Preferences</label>
-                                        <select name="languagePreferences" multiple value={profile.languagePreferences} onChange={handleMultiSelectChange} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <label className="block text-lg font-semibold text-gray-700 mb-2">Language Preferences</label>
+                                        <div className="flex flex-col gap-2">
                                             {languageOptions.map(option => (
-                                                <option key={option} value={option}>{option}</option>
+                                                <label key={option} className="flex items-center text-lg">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={profile.languagePreferences.includes(option)}
+                                                        onChange={e => {
+                                                            setProfile(prev => ({
+                                                                ...prev,
+                                                                languagePreferences: e.target.checked
+                                                                    ? [...prev.languagePreferences, option]
+                                                                    : prev.languagePreferences.filter(val => val !== option)
+                                                            }));
+                                                        }}
+                                                        className="mr-3 w-5 h-5"
+                                                    />
+                                                    {option}
+                                                </label>
                                             ))}
-                                        </select>
-                                        <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
+                                        </div>
                                     </div>
                                     <div className="md:col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Cultural Considerations</label>
-                                        <textarea name="culturalConsiderations" value={profile.culturalConsiderations} onChange={handleChange} rows={2} placeholder="Any cultural or religious considerations..." className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                        <label className="block text-lg font-semibold text-gray-700 mb-2">Cultural Considerations</label>
+                                        <textarea name="culturalConsiderations" value={profile.culturalConsiderations} onChange={handleChange} rows={2} placeholder="Any cultural or religious considerations..." className="w-full p-4 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                                     </div>
                                 </div>
                             </section>
                             {/* Schedule */}
                             <section className="bg-gray-50 rounded-xl p-6 shadow-sm">
-                                <h2 className="text-lg font-bold text-primary-700 mb-4 flex items-center gap-2"><span>📅</span> Preferred Schedule</h2>
+                                <h2 className="text-2xl font-bold text-primary-700 mb-4 flex items-center gap-2"><span>📅</span> Preferred Schedule</h2>
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Select Preferred Dates</label>
+                                        <label className="block text-lg font-semibold text-gray-700 mb-2">Select Preferred Dates</label>
                                         <DatePicker
                                             selected={null}
                                             onChange={dates => handleDateChange(Array.isArray(dates) ? dates : [dates])}
@@ -491,25 +533,25 @@ const CareSeekerProfilePage = () => {
                                             value={selectedDates}
                                             minDate={new Date()}
                                         />
-                                        <p className="text-xs text-gray-500 mt-1">Click dates to select or deselect. You can pick multiple dates.</p>
+                                        <p className="text-lg text-gray-500 mt-2">Tap dates to select or deselect. You can pick multiple dates.</p>
                                     </div>
                                     {selectedDates.length > 0 && (
                                         <div>
-                                            <h4 className="font-semibold mb-2">Set Time for Each Date</h4>
+                                            <h4 className="font-semibold mb-2 text-lg">Set Time for Each Date</h4>
                                             {selectedDates.map(date => {
                                                 const key = (date instanceof Date)
                                                     ? date.toISOString().split('T')[0]
                                                     : date.split('T')[0];
                                                 const timeOptions = generateTimeOptions();
                                                 return (
-                                                    <div key={key} className="flex items-center gap-4 mb-2">
-                                                        <span className="w-32">{date.toDateString()}</span>
-                                                        <select value={timeSlots[key]?.start || ''} onChange={e => handleTimeChange(key, 'start', e.target.value)} className="border rounded p-2">
+                                                    <div key={key} className="flex flex-col sm:flex-row items-center gap-4 mb-3">
+                                                        <span className="w-40 text-lg">{date.toDateString()}</span>
+                                                        <select value={timeSlots[key]?.start || ''} onChange={e => handleTimeChange(key, 'start', e.target.value)} className="border rounded p-3 text-lg">
                                                             <option value="">Start Time</option>
                                                             {timeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                                         </select>
-                                                        <span>to</span>
-                                                        <select value={timeSlots[key]?.end || ''} onChange={e => handleTimeChange(key, 'end', e.target.value)} className="border rounded p-2">
+                                                        <span className="text-lg">to</span>
+                                                        <select value={timeSlots[key]?.end || ''} onChange={e => handleTimeChange(key, 'end', e.target.value)} className="border rounded p-3 text-lg">
                                                             <option value="">End Time</option>
                                                             {timeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                                         </select>
@@ -522,13 +564,13 @@ const CareSeekerProfilePage = () => {
                             </section>
                             {/* Location */}
                             <section className="bg-gray-50 rounded-xl p-6 shadow-sm">
-                                <h2 className="text-lg font-bold text-primary-700 mb-4 flex items-center gap-2"><span>📍</span> Location</h2>
+                                <h2 className="text-2xl font-bold text-primary-700 mb-4 flex items-center gap-2"><span>📍</span> Location</h2>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
-                                    <input type="text" name="address" value={profile.location.address || ''} onChange={handleChange} required placeholder="e.g., Westlands, Nairobi" className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" readOnly={!showLocationPicker} />
+                                    <label className="block text-lg font-semibold text-gray-700 mb-2">Address *</label>
+                                    <input type="text" name="address" value={profile.location.address || ''} onChange={handleChange} required placeholder="e.g., Westlands, Nairobi" className="w-full p-4 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" readOnly={!showLocationPicker} />
                                 </div>
                                 {!showLocationPicker && (
-                                    <button type="button" className="mt-4 bg-blue-500 text-white px-4 py-2 rounded" onClick={() => setShowLocationPicker(true)}>
+                                    <button type="button" className="mt-4 bg-blue-500 text-white px-6 py-3 rounded-lg text-lg" onClick={() => setShowLocationPicker(true)}>
                                         Update Location
                                     </button>
                                 )}
@@ -546,15 +588,28 @@ const CareSeekerProfilePage = () => {
                                                 }
                                             }))}
                                         />
-                                        <button type="button" className="mt-2 bg-gray-500 text-white px-4 py-2 rounded" onClick={() => setShowLocationPicker(false)}>
+                                        <button type="button" className="mt-2 bg-gray-500 text-white px-6 py-3 rounded-lg text-lg" onClick={() => setShowLocationPicker(false)}>
                                             Done
                                         </button>
                                     </div>
                                 )}
                             </section>
+                            {/* Confirmation Section */}
+                            <section className="bg-green-50 rounded-xl p-6 shadow-inner border border-green-200">
+                                <h2 className="text-2xl font-bold text-green-700 mb-4 flex items-center gap-2"><span>✅</span> Review & Confirm</h2>
+                                <ul className="text-lg space-y-2">
+                                    <li><strong>Full Name:</strong> {profile.fullName}</li>
+                                    <li><strong>Contact Number:</strong> {profile.contactNumber}</li>
+                                    <li><strong>Care Type:</strong> {profile.careType.join(', ')}</li>
+                                    <li><strong>Required Tasks:</strong> {profile.requiredTasks.join(', ')}</li>
+                                    <li><strong>Budget:</strong> {profile.budget}</li>
+                                    <li><strong>Location:</strong> {profile.location.address}</li>
+                                </ul>
+                                <p className="mt-4 text-green-700 text-lg">Please review your details above before saving. If everything looks good, click <strong>Save Profile & Find Caregivers</strong>.</p>
+                            </section>
                             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-                                <button type="submit" disabled={loading} className={`bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 font-bold text-lg shadow ${loading && 'opacity-50 cursor-not-allowed'}`}>{loading ? 'Saving & Finding Caregivers...' : 'Save Profile & Find Caregivers'}</button>
-                                <button type="button" onClick={() => setIsEditing(false)} className="bg-gray-600 text-white px-8 py-3 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 font-bold text-lg shadow">Cancel</button>
+                                <button type="submit" disabled={loading} className={`bg-green-600 text-white px-10 py-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 font-bold text-2xl shadow ${loading && 'opacity-50 cursor-not-allowed'}`}>{loading ? 'Saving & Finding Caregivers...' : 'Save Profile & Find Caregivers'}</button>
+                                <button type="button" onClick={() => setIsEditing(false)} className="bg-gray-600 text-white px-10 py-4 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 font-bold text-2xl shadow">Cancel</button>
                             </div>
                         </form>
                     )}

@@ -42,17 +42,21 @@ export const AuthProvider = ({ children }) => {
       let userData = res.data;
       console.log('✅ User data fetched:', userData);
       
-      // If caregiver, fetch caregiver profile for profileComplete
+      // If caregiver, fetch caregiver profile for profileComplete and isVerified
       if (userData.role === 'caregiver') {
         try {
           console.log('📡 Fetching caregiver profile...');
           const caregiverRes = await API.get('/caregivers/profile', {
             headers: { 'x-auth-token': token },
           });
-          userData = { ...userData, profileComplete: caregiverRes.data.profileComplete };
-          console.log('✅ Caregiver profile fetched, profileComplete:', caregiverRes.data.profileComplete);
+          userData = { 
+            ...userData, 
+            profileComplete: caregiverRes.data.profileComplete,
+            isVerified: caregiverRes.data.isVerified
+          };
+          console.log('✅ Caregiver profile fetched, profileComplete:', caregiverRes.data.profileComplete, 'isVerified:', caregiverRes.data.isVerified);
         } catch (e) {
-          console.error('❌ Error fetching caregiver profile for profileComplete:', e);
+          console.error('❌ Error fetching caregiver profile for profileComplete and isVerified:', e);
         }
       }
       setUser(userData);
@@ -101,19 +105,23 @@ export const AuthProvider = ({ children }) => {
 
       setToken(token);
       let userData = user;
-      // If caregiver, fetch caregiver profile for profileComplete
+      // If caregiver, fetch caregiver profile for profileComplete and isVerified
       if (user.role === 'caregiver') {
         try {
-          console.log('📡 Fetching caregiver profile for profileComplete...');
+          console.log('📡 Fetching caregiver profile for profileComplete and isVerified...');
           const caregiverRes = await API.get('/caregivers/profile', {
             headers: { 'x-auth-token': token },
           });
-          userData = { ...user, profileComplete: caregiverRes.data.profileComplete };
-          console.log('✅ Caregiver profile fetched, profileComplete:', caregiverRes.data.profileComplete);
+          userData = { 
+            ...user, 
+            profileComplete: caregiverRes.data.profileComplete,
+            isVerified: caregiverRes.data.isVerified
+          };
+          console.log('✅ Caregiver profile fetched, profileComplete:', caregiverRes.data.profileComplete, 'isVerified:', caregiverRes.data.isVerified);
         } catch (e) {
-          console.error('❌ Error fetching caregiver profile for profileComplete:', e);
+          console.error('❌ Error fetching caregiver profile for profileComplete and isVerified:', e);
           // Don't fail the login if profile fetch fails
-          userData = { ...user, profileComplete: false };
+          userData = { ...user, profileComplete: false, isVerified: false };
         }
       }
       console.log('👤 Setting user data:', userData);
@@ -164,14 +172,32 @@ export const AuthProvider = ({ children }) => {
         toast.success('Registered successfully');
         return { success: true, role: newUser.role };
       } else {
-        // For caregivers, return profileComplete and isVerified
-        toast.success('Application submitted. Wait for admin approval.');
-        return {
-          success: true,
-          role: newUser.role,
-          profileComplete: newUser.profileComplete,
-          isVerified: newUser.isVerified
-        };
+        // For caregivers, check if they are verified
+        if (newUser.isVerified) {
+          // If verified, auto-login and redirect to dashboard
+          localStorage.setItem('token', newToken);
+          localStorage.setItem('username', newUser.username);
+          localStorage.setItem('role', newUser.role);
+          setToken(newToken);
+          setUser(newUser);
+          setUserRole(newUser.role);
+          toast.success('Registration successful! Welcome to your dashboard.');
+          return { 
+            success: true, 
+            role: newUser.role, 
+            profileComplete: newUser.profileComplete,
+            isVerified: newUser.isVerified 
+          };
+        } else {
+          // If not verified, show approval message
+          toast.success('Application submitted successfully. Please wait for admin approval.');
+          return {
+            success: true,
+            role: newUser.role,
+            profileComplete: newUser.profileComplete,
+            isVerified: newUser.isVerified
+          };
+        }
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'Registration failed';

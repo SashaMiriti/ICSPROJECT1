@@ -222,26 +222,35 @@ export default function CaregiverProfile() {
             {/* Contact & Booking */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Contact & Booking</h2>
-              
               <div className="space-y-4">
                 <div>
                   <h3 className="font-medium text-gray-900">Hourly Rate</h3>
                   <p className="text-2xl font-bold text-primary-600">
                     Ksh {caregiver.hourlyRate || 'Not specified'}
                   </p>
+                  {caregiver.priceType && (
+                    <p className="text-gray-700 mt-1">Price Type: <span className="font-semibold">{caregiver.priceType}</span></p>
+                  )}
                 </div>
-
                 <div>
                   <h3 className="font-medium text-gray-900">Contact</h3>
                   <p className="text-gray-600">{caregiver.user?.email || 'Email not available'}</p>
                   <p className="text-gray-600">{caregiver.user?.phone || 'Phone not available'}</p>
                 </div>
-
                 <div>
                   <h3 className="font-medium text-gray-900">Location</h3>
                   <p className="text-gray-600">{caregiver.location?.address || 'Location not specified'}</p>
                 </div>
-
+                <div>
+                  <h3 className="font-medium text-gray-900">Verification Status</h3>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    caregiver.isVerified 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {caregiver.isVerified ? 'Verified' : 'Pending Verification'}
+                  </span>
+                </div>
                 <div className="pt-4">
                   <Link
                     to={`/care-seeker/booking/${caregiver._id}`}
@@ -252,11 +261,9 @@ export default function CaregiverProfile() {
                 </div>
               </div>
             </div>
-
             {/* Additional Info */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Additional Information</h2>
-              
               <div className="space-y-4">
                 {caregiver.languagesSpoken && caregiver.languagesSpoken.length > 0 && (
                   <div>
@@ -264,18 +271,43 @@ export default function CaregiverProfile() {
                     <p className="text-gray-600">{caregiver.languagesSpoken.join(', ')}</p>
                   </div>
                 )}
-
                 {caregiver.gender && (
                   <div>
                     <h3 className="font-medium text-gray-900">Gender</h3>
                     <p className="text-gray-600">{caregiver.gender}</p>
                   </div>
                 )}
-
-                {caregiver.availability && caregiver.availability.days && caregiver.availability.days.length > 0 && (
+                {caregiver.specializationCategory && (
                   <div>
-                    <h3 className="font-medium text-gray-900">Available Days</h3>
-                    <p className="text-gray-600">{caregiver.availability.days.join(', ')}</p>
+                    <h3 className="font-medium text-gray-900">Specialization Category</h3>
+                    <p className="text-gray-600">{caregiver.specializationCategory}</p>
+                  </div>
+                )}
+                {caregiver.tribalLanguage && (
+                  <div>
+                    <h3 className="font-medium text-gray-900">Tribal Language</h3>
+                    <p className="text-gray-600">{caregiver.tribalLanguage}</p>
+                  </div>
+                )}
+                {caregiver.culture && (
+                  <div>
+                    <h3 className="font-medium text-gray-900">Culture</h3>
+                    <p className="text-gray-600">{caregiver.culture}</p>
+                  </div>
+                )}
+                {caregiver.religion && (
+                  <div>
+                    <h3 className="font-medium text-gray-900">Religion</h3>
+                    <p className="text-gray-600">{caregiver.religion}</p>
+                  </div>
+                )}
+                {caregiver.availability && Array.isArray(caregiver.availability.days) && caregiver.availability.days.length > 0 && (
+                  <div>
+                    <h3 className="font-medium text-gray-900">Schedule</h3>
+                    <p className="text-gray-600 mb-1">Available Days: {caregiver.availability.days.join(', ')}</p>
+                    {Array.isArray(caregiver.availability.timeSlots) && caregiver.availability.timeSlots[0] && (
+                      <p className="text-gray-600">Time: {caregiver.availability.timeSlots[0].startTime} - {caregiver.availability.timeSlots[0].endTime}</p>
+                    )}
                   </div>
                 )}
               </div>

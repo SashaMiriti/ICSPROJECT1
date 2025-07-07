@@ -8,6 +8,9 @@ const Navbar = () => {
   const location = useLocation();
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
 
+  // Helper to check if a route is active
+  const isActive = (path) => location.pathname === path;
+
   // Always show TogetherCare logo/text on the left
   const logo = (
     <Link to="/" className="flex-shrink-0 flex items-center mr-8">

@@ -166,7 +166,18 @@ router.post(
         bio,
         locationAddress,
         locationCoordinates,
-        specializationCategory
+        specializationCategory,
+        // Additional caregiver profile fields
+        fullName,
+        experienceYears,
+        languagesSpoken,
+        tribalLanguage,
+        gender,
+        culture,
+        religion,
+        hourlyRate,
+        priceType,
+        disabilitiesExplanation
       } = req.body;
 
       // Log the current database name
@@ -212,15 +223,37 @@ router.post(
             status: 'pending'
           }));
         }
+        // Parse languages spoken from JSON string
+        let languagesSpokenArray = [];
+        if (languagesSpoken) {
+          try {
+            languagesSpokenArray = JSON.parse(languagesSpoken);
+          } catch (e) {
+            languagesSpokenArray = [];
+          }
+        }
+
         await new Caregiver({
           user: user._id,
-          fullName: username,
+          fullName: fullName || username,
           contactNumber: phone,
           bio,
           location: geoJsonLocation,
           specializationCategory,
           documents,
-          isVerified: false
+          applicationStatus: 'pending',
+          // Additional profile fields
+          experienceYears: experienceYears ? parseInt(experienceYears) : 0,
+          languagesSpoken: languagesSpokenArray,
+          tribalLanguage: tribalLanguage || '',
+          gender: gender || '',
+          culture: culture || '',
+          religion: religion || '',
+          hourlyRate: hourlyRate ? parseInt(hourlyRate) : 0,
+          priceType: priceType || 'Fixed',
+          disabilitiesExplanation: disabilitiesExplanation || '',
+          profileComplete: true, // Mark as complete since all fields are provided
+          isVerified: false // Will be set to true by admin
         }).save();
       }
 
@@ -229,7 +262,7 @@ router.post(
       if (role === 'caregiver') {
         const caregiver = await Caregiver.findOne({ user: user._id });
         if (caregiver) {
-          profileComplete = caregiver.profileComplete || false;
+          profileComplete = caregiver.profileComplete || true; // Profile is complete since all fields are provided
           isVerified = caregiver.isVerified || false;
         }
       }

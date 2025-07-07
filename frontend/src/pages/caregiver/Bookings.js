@@ -69,8 +69,10 @@ export default function Bookings() {
       toast.success(`Booking ${action === 'accept' ? 'accepted' : 'rejected'} successfully`);
       fetchBookings(); // Refresh the list
     } catch (error) {
-      console.error(`Error ${action}ing booking:`, error);
-      toast.error(`Failed to ${action} booking. Please try again.`);
+      // Show the backend error message if available
+      const backendMsg = error.response?.data?.message || error.response?.data?.errors?.[0]?.msg;
+      toast.error(backendMsg || `Failed to ${action} booking. Please try again.`);
+      console.error(`Error ${action}ing booking:`, error.response?.data || error);
     }
   };
 
@@ -161,7 +163,13 @@ export default function Bookings() {
                           <div className="sm:flex lg:col-span-7">
                             <div className="mt-6 sm:mt-0">
                               <h3 className="text-base font-medium text-gray-900">
-                                {booking.careSeeker?.user?.name || 'Unknown Client'}
+                                {booking.careSeeker && booking.careSeeker.user
+                                  ? (booking.careSeeker.user.fullName ||
+                                     booking.careSeeker.user.name ||
+                                     booking.careSeeker.user.username ||
+                                     booking.careSeeker.fullName ||
+                                     'Unknown Client')
+                                  : 'Unknown Client'}
                               </h3>
                               <div className="mt-1 flex items-center">
                                 <span
@@ -196,8 +204,13 @@ export default function Bookings() {
                                 </dt>
                                 <dd className="mt-2">
                                   <div className="space-y-1">
-                                    <p>Email: {booking.careSeeker?.user?.email || 'No email'}</p>
-                                    <p>Phone: {booking.careSeeker?.user?.phone || 'No phone'}</p>
+                                    <p>Email: {booking.careSeeker && booking.careSeeker.user ? booking.careSeeker.user.email : 'No email'}</p>
+                                    <p>Phone: {booking.careSeeker && booking.careSeeker.user && booking.careSeeker.user.phone
+                                      ? booking.careSeeker.user.phone
+                                      : (booking.careSeeker && booking.careSeeker.contactNumber
+                                          ? booking.careSeeker.contactNumber
+                                          : 'No phone')}
+                                    </p>
                                   </div>
                                 </dd>
                               </div>

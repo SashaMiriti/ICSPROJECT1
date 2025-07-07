@@ -216,9 +216,17 @@ router.put('/reject-caregiver/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized as admin' });
     }
 
+    // Update User status to rejected
     const caregiver = await User.findByIdAndUpdate(
       req.params.id,
       { status: 'rejected' },
+      { new: true }
+    );
+
+    // Update Caregiver isVerified to false
+    await Caregiver.findOneAndUpdate(
+      { user: req.params.id },
+      { isVerified: false },
       { new: true }
     );
 

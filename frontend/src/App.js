@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/layout/Layout';
+import Navbar from './components/layout/Navbar';
 
 // Auth Pages
 import Login from './pages/auth/Login';
@@ -87,6 +88,7 @@ function App() {
             },
           }}
         />
+        <Navbar />
         <Routes>
           {/* Admin Protected Routes - render outside Layout so only AdminLayout is used */}
           <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />

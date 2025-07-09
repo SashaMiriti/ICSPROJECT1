@@ -326,4 +326,44 @@ router.post('/reviews', [auth, [
     }
 });
 
+// @route   PUT /api/care-seekers/reviews/:id
+// @desc    Update a review by ID (careseeker only)
+// @access  Private
+router.put('/reviews/:id', [auth, [
+    check('rating', 'Rating must be between 1 and 5').optional().isInt({ min: 1, max: 5 }),
+    check('comment', 'Comment is required').optional().not().isEmpty()
+]], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+    try {
+        const user = await User.findById(req.user.id);
+        if (user.role !== 'careSeeker') {
+            return res.status(403).json({ message: 'Not authorized as care seeker' });
+        }
+        const review = await Review.findById(req.params.id);
+        if (!review) {
+            return res.status(404).json({ message: 'Review not found' });
+        }
+        const careSeeker = await CareSeeker.findOne({ user: req.user.id });
+        if (review.careSeeker.toString() !== careSeeker._id.toString()) {
+            return res.status(403).json({ message: 'Not authorized to update this review' });
+        }
+        // Update fields if provided
+        if (req.body.rating !== undefined) review.rating = req.body.rating;
+        if (req.body.comment !== undefined) review.comment = req.body.comment;
+        await review.save();
+        await review.populate([
+            { path: 'caregiver', populate: { path: 'user', select: 'name email' } },
+            { path: 'careSeeker', populate: { path: 'user', select: 'name email' } },
+            'booking'
+        ]);
+        res.json(review);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router; 

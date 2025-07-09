@@ -45,6 +45,8 @@ export default function Feedback() {
     rating: 0,
     comment: ''
   });
+  const [reviewId, setReviewId] = useState(null);
+  const [isUpdate, setIsUpdate] = useState(false);
 
   const fetchBookingDetails = async () => {
     try {
@@ -80,14 +82,19 @@ export default function Feedback() {
         const reviewResponse = await axios.get(`http://localhost:5000/api/care-seekers/reviews/${bookingId}`, {
           headers: { 'x-auth-token': token }
         });
-        
         if (reviewResponse.data) {
-          toast.error('You have already reviewed this booking');
-          navigate('/care-seeker/bookings');
-          return;
+          // Prefill form for update
+          setFormData({
+            rating: reviewResponse.data.rating,
+            comment: reviewResponse.data.comment
+          });
+          setReviewId(reviewResponse.data._id);
+          setIsUpdate(true);
         }
       } catch (error) {
-        // Review doesn't exist, which is what we want
+        // Review doesn't exist, which is what we want for new review
+        setIsUpdate(false);
+        setReviewId(null);
       }
 
     } catch (error) {
@@ -120,41 +127,40 @@ export default function Feedback() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (formData.rating === 0) {
       toast.error('Please select a rating');
       return;
     }
-
     if (!formData.comment.trim()) {
       toast.error('Please provide a comment');
       return;
     }
-
     try {
       setSubmitting(true);
       const token = localStorage.getItem('token');
-
       const reviewData = {
         booking: bookingId,
         rating: formData.rating,
         comment: formData.comment.trim()
       };
-
-      await axios.post('http://localhost:5000/api/care-seekers/reviews', reviewData, {
-        headers: { 'x-auth-token': token }
-      });
-
-      toast.success('Review submitted successfully!');
+      if (isUpdate && reviewId) {
+        await axios.put(`http://localhost:5000/api/care-seekers/reviews/${reviewId}`, reviewData, {
+          headers: { 'x-auth-token': token }
+        });
+        toast.success('Review updated successfully!');
+      } else {
+        await axios.post('http://localhost:5000/api/care-seekers/reviews', reviewData, {
+          headers: { 'x-auth-token': token }
+        });
+        toast.success('Review submitted successfully!');
+      }
       navigate('/care-seeker/bookings', { 
         state: { 
-          message: 'Your review has been submitted and will be visible on the caregiver\'s profile.' 
+          message: isUpdate ? 'Your review has been updated.' : 'Your review has been submitted and will be visible on the caregiver\'s profile.' 
         } 
       });
-
     } catch (error) {
       console.error('Error submitting review:', error);
-      
       if (error.response?.status === 400) {
         toast.error(error.response.data.message || 'Invalid review data');
       } else if (error.response?.status === 403) {
@@ -292,10 +298,10 @@ export default function Feedback() {
                 {submitting ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline"></div>
-                    Submitting...
+                    {isUpdate ? 'Updating...' : 'Submitting...'}
                   </>
                 ) : (
-                  'Submit Review'
+                  isUpdate ? 'Update Review' : 'Submit Review'
                 )}
               </button>
             </div>

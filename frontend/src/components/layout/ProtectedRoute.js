@@ -33,9 +33,9 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Redirect caregivers with incomplete profile
-  if (userRole === 'caregiver' && user && user.profileComplete === false && location.pathname !== '/caregiver/complete-profile') {
-    console.log('🔄 Redirecting caregiver to complete profile');
+  // Redirect caregivers with incomplete profile (only if not verified)
+  if (userRole === 'caregiver' && user && user.profileComplete === false && !user.isVerified && location.pathname !== '/caregiver/complete-profile') {
+    console.log('🔄 Redirecting unverified caregiver to complete profile');
     return <Navigate to="/caregiver/complete-profile" replace />;
   }
 

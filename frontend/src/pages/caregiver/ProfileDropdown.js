@@ -80,19 +80,6 @@ export default function ProfileDropdown() {
           <Menu.Item>
             {({ active }) => (
               <button
-                onClick={() => navigate('/caregiver/reviews')}
-                className={classNames(
-                  active ? 'bg-gray-100' : '',
-                  'block w-full px-4 py-2 text-sm text-gray-700 text-left'
-                )}
-              >
-                My Reviews
-              </button>
-            )}
-          </Menu.Item>
-          <Menu.Item>
-            {({ active }) => (
-              <button
                 onClick={() => navigate('/caregiver/upload-docs')}
                 className={classNames(
                   active ? 'bg-gray-100' : '',

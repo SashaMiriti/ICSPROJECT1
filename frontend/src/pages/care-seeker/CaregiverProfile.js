@@ -4,45 +4,17 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
-function StarRating({ rating }) {
-  return (
-    <div className="flex items-center">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <svg
-          key={star}
-          className={`h-5 w-5 ${
-            star <= rating ? 'text-yellow-400' : 'text-gray-300'
-          }`}
-          viewBox="0 0 20 20"
-          fill="currentColor"
-          aria-hidden="true"
-        >
-          <path
-            fillRule="evenodd"
-            d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401z"
-            clipRule="evenodd"
-          />
-        </svg>
-      ))}
-    </div>
-  );
-}
-
 export default function CaregiverProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [caregiver, setCaregiver] = useState(null);
-  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   const fetchCaregiverProfile = useCallback(async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`/api/caregivers/profile`, {
-        headers: { 'x-auth-token': token }
-      });
+      // Fetch caregiver profile using the robust endpoint
+      const response = await axios.get(`/api/caregivers/${id}/profile`);
       setCaregiver(response.data);
     } catch (error) {
       console.error('Error fetching caregiver profile:', error);
@@ -56,15 +28,6 @@ export default function CaregiverProfile() {
     fetchCaregiverProfile();
   }, [fetchCaregiverProfile]);
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -76,11 +39,11 @@ export default function CaregiverProfile() {
     );
   }
 
-  if (error || !caregiver) {
+  if (!caregiver) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error || 'Caregiver not found'}</p>
+          <p className="text-red-600 mb-4">Caregiver not found</p>
           <button
             onClick={() => navigate('/care-seeker/search')}
             className="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700"
@@ -91,10 +54,6 @@ export default function CaregiverProfile() {
       </div>
     );
   }
-
-  const averageRating = reviews.length > 0 
-    ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length 
-    : 0;
 
   return (
     <div className="min-h-screen bg-gray-100 py-8">
@@ -114,10 +73,7 @@ export default function CaregiverProfile() {
                   {caregiver.experienceYears || 0} years of experience
                 </p>
                 <div className="flex items-center mt-2">
-                  <StarRating rating={Math.round(averageRating)} />
-                  <span className="ml-2 text-white">
-                    {averageRating.toFixed(1)} ({reviews.length} reviews)
-                  </span>
+                  {/* Remove StarRating and reviews count */}
                 </div>
               </div>
             </div>
@@ -179,42 +135,6 @@ export default function CaregiverProfile() {
                 )}
               </div>
             </div>
-
-            {/* Reviews Section */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Reviews</h2>
-              
-              {reviews.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No reviews yet</p>
-              ) : (
-                <div className="space-y-6">
-                  {reviews.map((review) => (
-                    <div key={review._id} className="border-b border-gray-200 pb-6 last:border-b-0">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 bg-primary-100 rounded-full flex items-center justify-center text-sm font-bold text-primary-700">
-                            {review.careSeeker?.user?.name?.[0] || 'A'}
-                          </div>
-                          <div className="ml-3">
-                            <h4 className="font-medium text-gray-900">
-                              {review.careSeeker?.user?.name || 'Anonymous'}
-                            </h4>
-                            <p className="text-sm text-gray-500">{review.booking?.service}</p>
-                          </div>
-                        </div>
-                        <span className="text-sm text-gray-500">
-                          {formatDate(review.createdAt)}
-                        </span>
-                      </div>
-                      <div className="mb-2">
-                        <StarRating rating={review.rating} />
-                      </div>
-                      <p className="text-gray-600">{review.comment}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
 
           {/* Sidebar */}
@@ -222,26 +142,35 @@ export default function CaregiverProfile() {
             {/* Contact & Booking */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Contact & Booking</h2>
-              
               <div className="space-y-4">
                 <div>
                   <h3 className="font-medium text-gray-900">Hourly Rate</h3>
                   <p className="text-2xl font-bold text-primary-600">
                     Ksh {caregiver.hourlyRate || 'Not specified'}
                   </p>
+                  {caregiver.priceType && (
+                    <p className="text-gray-700 mt-1">Price Type: <span className="font-semibold">{caregiver.priceType}</span></p>
+                  )}
                 </div>
-
                 <div>
                   <h3 className="font-medium text-gray-900">Contact</h3>
                   <p className="text-gray-600">{caregiver.user?.email || 'Email not available'}</p>
                   <p className="text-gray-600">{caregiver.user?.phone || 'Phone not available'}</p>
                 </div>
-
                 <div>
                   <h3 className="font-medium text-gray-900">Location</h3>
                   <p className="text-gray-600">{caregiver.location?.address || 'Location not specified'}</p>
                 </div>
-
+                <div>
+                  <h3 className="font-medium text-gray-900">Verification Status</h3>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    caregiver.isVerified 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {caregiver.isVerified ? 'Verified' : 'Pending Verification'}
+                  </span>
+                </div>
                 <div className="pt-4">
                   <Link
                     to={`/care-seeker/booking/${caregiver._id}`}
@@ -252,11 +181,9 @@ export default function CaregiverProfile() {
                 </div>
               </div>
             </div>
-
             {/* Additional Info */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Additional Information</h2>
-              
               <div className="space-y-4">
                 {caregiver.languagesSpoken && caregiver.languagesSpoken.length > 0 && (
                   <div>
@@ -264,18 +191,43 @@ export default function CaregiverProfile() {
                     <p className="text-gray-600">{caregiver.languagesSpoken.join(', ')}</p>
                   </div>
                 )}
-
                 {caregiver.gender && (
                   <div>
                     <h3 className="font-medium text-gray-900">Gender</h3>
                     <p className="text-gray-600">{caregiver.gender}</p>
                   </div>
                 )}
-
-                {caregiver.availability && caregiver.availability.days && caregiver.availability.days.length > 0 && (
+                {caregiver.specializationCategory && (
                   <div>
-                    <h3 className="font-medium text-gray-900">Available Days</h3>
-                    <p className="text-gray-600">{caregiver.availability.days.join(', ')}</p>
+                    <h3 className="font-medium text-gray-900">Specialization Category</h3>
+                    <p className="text-gray-600">{caregiver.specializationCategory}</p>
+                  </div>
+                )}
+                {caregiver.tribalLanguage && (
+                  <div>
+                    <h3 className="font-medium text-gray-900">Tribal Language</h3>
+                    <p className="text-gray-600">{caregiver.tribalLanguage}</p>
+                  </div>
+                )}
+                {caregiver.culture && (
+                  <div>
+                    <h3 className="font-medium text-gray-900">Culture</h3>
+                    <p className="text-gray-600">{caregiver.culture}</p>
+                  </div>
+                )}
+                {caregiver.religion && (
+                  <div>
+                    <h3 className="font-medium text-gray-900">Religion</h3>
+                    <p className="text-gray-600">{caregiver.religion}</p>
+                  </div>
+                )}
+                {caregiver.availability && Array.isArray(caregiver.availability.days) && caregiver.availability.days.length > 0 && (
+                  <div>
+                    <h3 className="font-medium text-gray-900">Schedule</h3>
+                    <p className="text-gray-600 mb-1">Available Days: {caregiver.availability.days.join(', ')}</p>
+                    {Array.isArray(caregiver.availability.timeSlots) && caregiver.availability.timeSlots[0] && (
+                      <p className="text-gray-600">Time: {caregiver.availability.timeSlots[0].startTime} - {caregiver.availability.timeSlots[0].endTime}</p>
+                    )}
                   </div>
                 )}
               </div>

@@ -95,11 +95,11 @@ router.post('/', [auth, [
             return res.status(400).json({ message: 'Care seeker profile not found. Please complete your profile first.' });
         }
 
-        // Calculate price based on duration and hourly rate
-        let price = 0;
+        // Calculate total cost for reference (not stored, just for logic)
+        let totalCost = 0;
         if (typeof caregiver.hourlyRate === 'number' && !isNaN(caregiver.hourlyRate)) {
             const duration = moment.duration(end.diff(start)).asHours();
-            price = duration * caregiver.hourlyRate;
+            totalCost = duration * caregiver.hourlyRate;
         }
 
         const booking = new Booking({
@@ -110,8 +110,8 @@ router.post('/', [auth, [
             service,
             notes,
             location,
-            price: Math.round(price * 100) / 100, // Round to 2 decimal places
-            priceType: req.body.priceType || 'Fixed',
+            budget: req.body.budget, // use careseeker's proposed budget
+            // price and priceType removed
         });
 
         await booking.save();
@@ -173,13 +173,21 @@ router.put('/:id', [auth, [
             if (!['accepted', 'rejected'].includes(status)) {
                 return res.status(400).json({ message: 'Invalid status change for caregiver' });
             }
-        } else if (user.role === 'care seeker') {
+        } else if (user.role === 'care seeker' || user.role === 'careSeeker') {
             const careSeeker = await CareSeeker.findOne({ user: req.user.id });
             if (booking.careSeeker.toString() !== careSeeker._id.toString()) {
                 return res.status(403).json({ message: 'Not authorized' });
             }
-            if (status !== 'cancelled') {
-                return res.status(400).json({ message: 'Care seekers can only cancel bookings' });
+            if (status === 'cancelled') {
+                // Allow cancellation as before
+            } else if (status === 'completed') {
+                // Only allow marking as completed if endTime has passed
+                const now = new Date();
+                if (new Date(booking.endTime) > now) {
+                    return res.status(400).json({ message: 'Cannot mark as completed before the end time.' });
+                }
+            } else {
+                return res.status(400).json({ message: 'Care seekers can only cancel or complete bookings' });
             }
         } else {
             return res.status(403).json({ message: 'Not authorized' });
@@ -245,18 +253,7 @@ router.get('/:id', auth, async (req, res) => {
         }
 
         // Verify authorization
-        const user = await User.findById(req.user.id);
-        if (user.role === 'caregiver') {
-            const caregiver = await Caregiver.findOne({ user: req.user.id });
-            if (booking.caregiver.toString() !== caregiver._id.toString()) {
-                return res.status(403).json({ message: 'Not authorized' });
-            }
-        } else if (user.role === 'care seeker') {
-            const careSeeker = await CareSeeker.findOne({ user: req.user.id });
-            if (booking.careSeeker.toString() !== careSeeker._id.toString()) {
-                return res.status(403).json({ message: 'Not authorized' });
-            }
-        }
+        // (Authorization removed to allow any authenticated user to fetch booking details)
 
         res.json(booking);
     } catch (err) {

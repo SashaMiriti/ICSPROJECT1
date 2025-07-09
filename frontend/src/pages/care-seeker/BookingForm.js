@@ -18,8 +18,7 @@ export default function BookingForm() {
       address: '',
       coordinates: []
     },
-    price: '',
-    priceType: 'Fixed',
+    budget: '',
   });
 
   // Fetch caregiver details and care seeker's location on component mount
@@ -36,11 +35,11 @@ export default function BookingForm() {
             specializationCategory: response.data.caregiver.specializationCategory
           }));
         }
-        // Pre-fill price with caregiver's hourlyRate if available
+        // Pre-fill budget with caregiver's hourlyRate if available
         if (typeof response.data.caregiver.hourlyRate === 'number' && !isNaN(response.data.caregiver.hourlyRate)) {
           setFormData(prev => ({
             ...prev,
-            price: response.data.caregiver.hourlyRate
+            budget: response.data.caregiver.hourlyRate
           }));
         }
       } catch (error) {
@@ -125,8 +124,8 @@ export default function BookingForm() {
           address: formData.location.address,
           coordinates: formData.location.coordinates
         },
-        price: formData.price,
-        priceType: formData.priceType,
+        budget: formData.budget,
+        actualPrice: caregiver.hourlyRate,
       };
 
       // Submit booking
@@ -177,6 +176,16 @@ export default function BookingForm() {
       },
     }));
   };
+
+  const getTotalHours = () => {
+    if (!formData.startTime || !formData.endTime) return 0;
+    const start = new Date(`${formData.date}T${formData.startTime}`);
+    const end = new Date(`${formData.date}T${formData.endTime}`);
+    const diff = (end - start) / (1000 * 60 * 60); // hours
+    return diff > 0 ? diff : 0;
+  };
+
+  const totalCost = caregiver && caregiver.hourlyRate ? caregiver.hourlyRate * getTotalHours() : 0;
 
   if (!caregiver) {
     return (
@@ -369,30 +378,17 @@ export default function BookingForm() {
                     </div>
 
                     <div className="col-span-6 sm:col-span-3">
-                      <label htmlFor="price" className="block text-sm font-medium text-gray-700">Proposed Price (Ksh)</label>
+                      <label htmlFor="budget" className="block text-sm font-medium text-gray-700">Proposed Budget (Ksh)</label>
                       <input
                         type="number"
-                        id="price"
-                        name="price"
+                        id="budget"
+                        name="budget"
                         min="0"
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                        value={formData.price}
+                        value={formData.budget}
                         onChange={handleChange}
-                        placeholder="Enter your proposed price"
+                        placeholder="Enter your proposed budget"
                       />
-                    </div>
-                    <div className="col-span-6 sm:col-span-3">
-                      <label htmlFor="priceType" className="block text-sm font-medium text-gray-700">Price Type</label>
-                      <select
-                        id="priceType"
-                        name="priceType"
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                        value={formData.priceType}
-                        onChange={handleChange}
-                      >
-                        <option value="Fixed">Fixed</option>
-                        <option value="Bargainable">Bargainable</option>
-                      </select>
                     </div>
 
                     <div className="col-span-6">
@@ -442,6 +438,13 @@ export default function BookingForm() {
             </form>
           </div>
         </div>
+        {caregiver && (
+          <div className="mt-4">
+            <p className="text-sm text-gray-700">Caregiver's Rate: <span className="font-bold">Ksh {caregiver.hourlyRate} per hour</span></p>
+            <p className="text-sm text-gray-700">Total Cost (based on caregiver's rate): <span className="font-bold">Ksh {totalCost}</span></p>
+            <p className="text-xs text-gray-500 mt-1">Your proposed budget is for your own reference. The actual price is determined by the caregiver's rate.</p>
+          </div>
+        )}
       </div>
     </div>
   );

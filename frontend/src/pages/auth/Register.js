@@ -75,22 +75,21 @@ function LocationPicker({ value, onChange }) {
 
 // Yup validation schema for the registration form fields
 const validationSchema = Yup.object({
-  username: Yup.string().required('Required').min(2, 'Username too short'), // Username must be a string, required, and at least 2 characters
-  email: Yup.string().email('Invalid email address').required('Required'), // Email must be a valid email format and required
-  password: Yup.string().required('Required').min(6, 'Password must be at least 6 characters'), // Password required and min 6 characters
+  username: Yup.string().required('Required').min(2, 'Username too short'),
+  email: Yup.string().email('Invalid email address').required('Required'),
+  password: Yup.string().required('Required').min(6, 'Password must be at least 6 characters'),
   confirmPassword: Yup.string()
-    .oneOf([Yup.ref('password')], 'Passwords must match') // Must match the password field
-    .required('Required'), // Confirmation password is required
+    .oneOf([Yup.ref('password')], 'Passwords must match')
+    .required('Required'),
   role: Yup.string()
-    .oneOf(['caregiver', 'careSeeker'], 'Invalid role selected') // Role must be either 'caregiver' or 'careSeeker'
-    .required('Required'), // Role is required
+    .oneOf(['caregiver', 'careSeeker'], 'Invalid role selected')
+    .required('Required'),
   phone: Yup.string()
-    .matches(/^[0-9]{10}$/, 'Phone number must be 10 digits') // Phone must be exactly 10 digits
-    .required('Required'), // Phone number is required
+    .matches(/^[0-9]{10}$/, 'Phone number must be 10 digits')
+    .required('Required'),
   bio: Yup.string().when('role', {
-    // Bio field is conditionally required based on role
-    is: 'caregiver', // If role is 'caregiver'
-    then: (schema) => schema.required('Bio is required for caregivers'), // Then bio is required
+    is: 'caregiver',
+    then: (schema) => schema.required('Bio is required for caregivers'),
   }),
   locationAddress: Yup.string().required('Required'),
   locationCoordinates: Yup.array().of(Yup.number()).min(2, 'Click on the map').required(),
@@ -98,9 +97,53 @@ const validationSchema = Yup.object({
     is: 'caregiver',
     then: (schema) =>
       schema
-        .oneOf(['Elderly Care', 'People with Disabilities', 'Both'], 'Select a valid category')
+        .oneOf(['Elderly Care', 'Persons with Disabilities'], 'Select a valid category')
         .required('Specialization category is required'),
     otherwise: (schema) => schema.notRequired(),
+  }),
+  disabilitiesExplanation: Yup.string().when(['role', 'specializationCategory'], {
+    is: (role, specializationCategory) =>
+      role === 'caregiver' && specializationCategory === 'Persons with Disabilities',
+    then: (schema) => schema.required('Please explain the type of disabilities'),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  // Additional caregiver profile fields
+  fullName: Yup.string().when('role', {
+    is: 'caregiver',
+    then: (schema) => schema.required('Full name is required for caregivers'),
+  }),
+  experienceYears: Yup.number().when('role', {
+    is: 'caregiver',
+    then: (schema) => schema.min(0).required('Years of experience is required'),
+  }),
+  languagesSpoken: Yup.array().when('role', {
+    is: 'caregiver',
+    then: (schema) => schema.min(1, 'Select at least one language'),
+  }),
+  tribalLanguage: Yup.string().when(['role', 'languagesSpoken'], {
+    is: (role, languagesSpoken) =>
+      role === 'caregiver' && languagesSpoken?.includes('Tribal'),
+    then: (schema) => schema.required('Please specify your tribal language'),
+  }),
+  gender: Yup.string().when('role', {
+    is: 'caregiver',
+    then: (schema) => schema.required('Gender is required'),
+  }),
+  culture: Yup.string().when('role', {
+    is: 'caregiver',
+    then: (schema) => schema.required('Culture is required'),
+  }),
+  religion: Yup.string().when('role', {
+    is: 'caregiver',
+    then: (schema) => schema.required('Religion is required'),
+  }),
+  hourlyRate: Yup.number().when('role', {
+    is: 'caregiver',
+    then: (schema) => schema.min(0).required('Hourly rate is required'),
+  }),
+  priceType: Yup.string().when('role', {
+    is: 'caregiver',
+    then: (schema) => schema.required('Price type is required'),
   }),
 });
 
@@ -132,21 +175,34 @@ export default function Register() {
     setFormError('');
     try {
       const formData = new FormData();
+      
+      // Append all form fields including location data
       Object.entries(values).forEach(([key, val]) => {
-        formData.append(key, Array.isArray(val) ? JSON.stringify(val) : val);
+        if (Array.isArray(val)) {
+          formData.append(key, JSON.stringify(val));
+        } else {
+          formData.append(key, val);
+        }
       });
+      
       if (values.role === 'caregiver' && documentFiles && documentFiles.length > 0) {
         Array.from(documentFiles).forEach(file => {
           formData.append('certifications', file);
         });
       }
+      if (values.role === 'caregiver' && values.specializationCategory === 'Persons with Disabilities') {
+        formData.set('disabilitiesExplanation', values.disabilitiesExplanation || '');
+      }
+      
       const result = await register(formData, values.role);
       if (result.success) {
         if (result.role === 'caregiver') {
-          if (result.profileComplete && result.isVerified) {
+          // For caregivers, check if they are verified and redirect accordingly
+          if (result.isVerified) {
             navigate('/caregiver/dashboard');
           } else {
-            navigate(`/caregiver-confirmation?name=${encodeURIComponent(values.username)}`);
+            // If not verified, show confirmation message and redirect to confirmation page
+            navigate('/caregiver-confirmation');
           }
         } else {
           navigate('/care-seeker/profile');
@@ -193,6 +249,17 @@ export default function Register() {
             locationAddress: '',
             locationCoordinates: [],
             specializationCategory: '',
+            disabilitiesExplanation: '',
+            // Additional caregiver profile fields
+            fullName: '',
+            experienceYears: '',
+            languagesSpoken: [],
+            tribalLanguage: '',
+            gender: '',
+            culture: '',
+            religion: '',
+            hourlyRate: '',
+            priceType: 'Fixed',
           }}
           validationSchema={validationSchema} // Apply the Yup validation schema defined above
           onSubmit={handleSubmit} // Call the handleSubmit function on form submission
@@ -274,6 +341,21 @@ export default function Register() {
                     </Field>
                     <ErrorMessage name="specializationCategory" component="p" className="text-sm text-red-600 mt-1" />
                   </div>
+                  {values.specializationCategory === 'Persons with Disabilities' && (
+                    <div>
+                      <label htmlFor="disabilitiesExplanation" className="block text-sm font-medium text-gray-700 mb-1">
+                        Please explain the type of disabilities (e.g., physical, mental, etc.)
+                      </label>
+                      <Field
+                        as="textarea"
+                        name="disabilitiesExplanation"
+                        rows={2}
+                        className="w-full px-4 py-2 border rounded-md shadow-sm"
+                        placeholder="Describe the type of disabilities you specialize in"
+                      />
+                      <ErrorMessage name="disabilitiesExplanation" component="p" className="text-sm text-red-600 mt-1" />
+                    </div>
+                  )}
                   <div>
                     <label htmlFor="certification" className="block text-sm font-medium text-gray-700 mb-1">Upload certifications</label>
                     <input
@@ -286,6 +368,133 @@ export default function Register() {
                       className="block w-full text-sm text-gray-700 border border-gray-300 rounded-md p-2"
                     />
                     <p className="text-xs text-gray-500 mt-1">Accepted: PDF, JPG, PNG. You can select multiple files.</p>
+                  </div>
+
+                  {/* Profile Information Section */}
+                  <div className="border-t border-gray-200 pt-4 mt-4">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Profile Information</h3>
+                  </div>
+
+                  {/* Additional Profile Fields */}
+                  <div>
+                    <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <Field
+                      id="fullName"
+                      name="fullName"
+                      type="text"
+                      className={`w-full px-4 py-2 border ${errors.fullName && touched.fullName ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm`}
+                    />
+                    <ErrorMessage name="fullName" component="p" className="text-sm text-red-600 mt-1" />
+                  </div>
+
+                  <div>
+                    <label htmlFor="experienceYears" className="block text-sm font-medium text-gray-700 mb-1">Years of Experience</label>
+                    <Field
+                      id="experienceYears"
+                      name="experienceYears"
+                      type="number"
+                      min="0"
+                      className={`w-full px-4 py-2 border ${errors.experienceYears && touched.experienceYears ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm`}
+                    />
+                    <ErrorMessage name="experienceYears" component="p" className="text-sm text-red-600 mt-1" />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Languages Spoken</label>
+                    <div className="space-y-2">
+                      {['English', 'Kiswahili', 'Tribal'].map((lang) => (
+                        <label key={lang} className="flex items-center">
+                          <Field
+                            type="checkbox"
+                            name="languagesSpoken"
+                            value={lang}
+                            className="mr-2"
+                          />
+                          <span className="text-sm text-gray-700">{lang}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <ErrorMessage name="languagesSpoken" component="p" className="text-sm text-red-600 mt-1" />
+                  </div>
+
+                  {values.languagesSpoken.includes('Tribal') && (
+                    <div>
+                      <label htmlFor="tribalLanguage" className="block text-sm font-medium text-gray-700 mb-1">Specify Tribal Language</label>
+                      <Field
+                        id="tribalLanguage"
+                        name="tribalLanguage"
+                        type="text"
+                        placeholder="e.g., Kikuyu, Kisii, etc."
+                        className={`w-full px-4 py-2 border ${errors.tribalLanguage && touched.tribalLanguage ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm`}
+                      />
+                      <ErrorMessage name="tribalLanguage" component="p" className="text-sm text-red-600 mt-1" />
+                    </div>
+                  )}
+
+                  <div>
+                    <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                    <Field
+                      as="select"
+                      id="gender"
+                      name="gender"
+                      className={`w-full px-4 py-2 border ${errors.gender && touched.gender ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm`}
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </Field>
+                    <ErrorMessage name="gender" component="p" className="text-sm text-red-600 mt-1" />
+                  </div>
+
+                  <div>
+                    <label htmlFor="culture" className="block text-sm font-medium text-gray-700 mb-1">Culture</label>
+                    <Field
+                      id="culture"
+                      name="culture"
+                      type="text"
+                      className={`w-full px-4 py-2 border ${errors.culture && touched.culture ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm`}
+                    />
+                    <ErrorMessage name="culture" component="p" className="text-sm text-red-600 mt-1" />
+                  </div>
+
+                  <div>
+                    <label htmlFor="religion" className="block text-sm font-medium text-gray-700 mb-1">Religion</label>
+                    <Field
+                      id="religion"
+                      name="religion"
+                      type="text"
+                      className={`w-full px-4 py-2 border ${errors.religion && touched.religion ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm`}
+                    />
+                    <ErrorMessage name="religion" component="p" className="text-sm text-red-600 mt-1" />
+                  </div>
+
+                  <div>
+                    <label htmlFor="hourlyRate" className="block text-sm font-medium text-gray-700 mb-1">Desired Price (Ksh per hour)</label>
+                    <Field
+                      id="hourlyRate"
+                      name="hourlyRate"
+                      type="number"
+                      min="0"
+                      className={`w-full px-4 py-2 border ${errors.hourlyRate && touched.hourlyRate ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm`}
+                      placeholder="Enter your price per hour in Ksh"
+                    />
+                    <ErrorMessage name="hourlyRate" component="p" className="text-sm text-red-600 mt-1" />
+                  </div>
+
+                  <div>
+                    <label htmlFor="priceType" className="block text-sm font-medium text-gray-700 mb-1">Price Type</label>
+                    <Field
+                      as="select"
+                      id="priceType"
+                      name="priceType"
+                      className={`w-full px-4 py-2 border ${errors.priceType && touched.priceType ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm`}
+                    >
+                      <option value="Fixed">Fixed</option>
+                      <option value="Bargainable">Bargainable</option>
+                    </Field>
+                    <ErrorMessage name="priceType" component="p" className="text-sm text-red-600 mt-1" />
                   </div>
                 </>
               )}

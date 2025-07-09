@@ -8,6 +8,9 @@ const Navbar = () => {
   const location = useLocation();
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
 
+  // Helper to check if a route is active
+  const isActive = (path) => location.pathname === path;
+
   // Always show TogetherCare logo/text on the left
   const logo = (
     <Link to="/" className="flex-shrink-0 flex items-center mr-8">
@@ -34,9 +37,9 @@ const Navbar = () => {
             {logo}
             <div className="flex flex-1 justify-center space-x-8">
               <Link to="/caregiver/dashboard" className="text-base font-medium text-gray-700 hover:text-green-700">Dashboard</Link>
+              <Link to="/caregiver/schedule" className="text-base font-medium text-gray-700 hover:text-pink-700">My Schedule</Link>
               <Link to="/caregiver/profile" className="text-base font-medium text-gray-700 hover:text-purple-700">My Profile</Link>
               <Link to="/caregiver/bookings" className="text-base font-medium text-gray-700 hover:text-blue-700">My Bookings</Link>
-              <Link to="/caregiver/schedule" className="text-base font-medium text-gray-700 hover:text-pink-700">My Schedule</Link>
               <Link to="/caregiver/reviews" className="text-base font-medium text-gray-700 hover:text-yellow-700">My Reviews</Link>
             </div>
             <div className="ml-6 flex items-center relative">
@@ -71,6 +74,45 @@ const Navbar = () => {
     );
   }
 
+  // Only show minimal navbar on home page
+  const isHome = location.pathname === '/';
+  if (isHome) {
+    return (
+      <nav className="bg-white shadow-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {logo}
+            <div className="flex items-center">
+              {user ? (
+                <button
+                  onClick={handleLogout}
+                  className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Logout
+                </button>
+              ) : (
+                <div className="flex items-center space-x-4">
+                  <Link
+                    to="/login"
+                    className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="btn-primary"
+                  >
+                    Sign Up
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
+
   // Default: Sign In and Sign Up, always show logo on left
   return (
     <nav className="bg-white shadow-md">
@@ -78,20 +120,98 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           {logo}
           <div className="flex items-center">
-            <Link
-              to="/login"
-              className="bg-white border-2 border-primary-600 text-primary-700 hover:bg-primary-50 font-bold py-2 px-6 rounded-lg text-base shadow transition-all duration-200 mr-4"
-              style={{ lineHeight: '1.5' }}
-            >
-              Sign In
-            </Link>
-            <Link
-              to="/register"
-              className="bg-primary-600 text-white font-bold py-2 px-6 rounded-lg text-base shadow transition-all duration-200 hover:bg-primary-700"
-              style={{ lineHeight: '1.5' }}
-            >
-              Sign Up
-            </Link>
+            {user && user.role === 'careSeeker' && (
+              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+                <Link
+                  to="/care-seeker/dashboard"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/care-seeker/dashboard') ? 'border-purple-700 text-purple-700' : 'border-transparent text-gray-500 hover:border-purple-700 hover:text-purple-700'}`}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/care-seeker/profile"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/care-seeker/profile') ? 'border-green-700 text-green-700' : 'border-transparent text-gray-500 hover:border-green-700 hover:text-green-700'}`}
+                >
+                  My Profile
+                </Link>
+                <Link
+                  to="/care-seeker/bookings"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/care-seeker/bookings') ? 'border-blue-700 text-blue-700' : 'border-transparent text-gray-500 hover:border-blue-700 hover:text-blue-700'}`}
+                >
+                  My Bookings
+                </Link>
+                <Link
+                  to="/care-seeker/search"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/care-seeker/search') ? 'border-pink-700 text-pink-700' : 'border-transparent text-gray-500 hover:border-pink-700 hover:text-pink-700'}`}
+                >
+                  Search Caregivers
+                </Link>
+              </div>
+            )}
+            {user && user.role === 'caregiver' && (
+              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+                <Link
+                  to="/caregiver/dashboard"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/caregiver/dashboard') ? 'border-green-700 text-green-700' : 'border-transparent text-gray-500 hover:border-green-700 hover:text-green-700'}`}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/caregiver/schedule"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/caregiver/schedule') ? 'border-pink-700 text-pink-700' : 'border-transparent text-gray-500 hover:border-pink-700 hover:text-pink-700'}`}
+                >
+                  My Schedule
+                </Link>
+                <Link
+                  to="/caregiver/profile"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/caregiver/profile') ? 'border-purple-700 text-purple-700' : 'border-transparent text-gray-500 hover:border-purple-700 hover:text-purple-700'}`}
+                >
+                  My Profile
+                </Link>
+                <Link
+                  to="/caregiver/bookings"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/caregiver/bookings') ? 'border-blue-700 text-blue-700' : 'border-transparent text-gray-500 hover:border-blue-700 hover:text-blue-700'}`}
+                >
+                  My Bookings
+                </Link>
+                <Link
+                  to="/caregiver/reviews"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${isActive('/caregiver/reviews') ? 'border-yellow-700 text-yellow-700' : 'border-transparent text-gray-500 hover:border-yellow-700 hover:text-yellow-700'}`}
+                >
+                  My Reviews
+                </Link>
+              </div>
+            )}
+          </div>
+          <div className="hidden sm:ml-6 sm:flex sm:items-center">
+            {user ? (
+              <div className="flex items-center space-x-4">
+                {(user.role === 'careSeeker' || user.role === 'caregiver') && (
+                  <button
+                    onClick={handleLogout}
+                    className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    Logout
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center space-x-4">
+                <Link
+                  to="/login"
+                  className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="btn-primary"
+                >
+                  Sign Up
+                </Link>
+              </div>
+            )}
+
           </div>
         </div>
       </div>

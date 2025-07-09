@@ -10,7 +10,16 @@ export default function AdminProfile() {
   useEffect(() => {
     const fetchPendingCaregivers = async () => {
       try {
-        const response = await axios.get('/api/admin/pending-caregivers');
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+          console.error('No authentication token found');
+          return;
+        }
+
+        const response = await axios.get('http://localhost:5000/api/admin/pending-caregivers', {
+          headers: { 'x-auth-token': token }
+        });
         setPendingCaregivers(response.data);
       } catch (error) {
         console.error('Failed to fetch pending caregivers:', error);
@@ -22,12 +31,15 @@ export default function AdminProfile() {
 
   const handleDecision = async (id, decision) => {
     try {
+      const token = localStorage.getItem('token');
       const endpoint =
         decision === 'approved'
-          ? `/api/admin/approve-caregiver/${id}`
-          : `/api/admin/reject-caregiver/${id}`;
+          ? `http://localhost:5000/api/admin/approve-caregiver/${id}`
+          : `http://localhost:5000/api/admin/reject-caregiver/${id}`;
 
-      await axios.put(endpoint);
+      await axios.put(endpoint, {}, {
+        headers: { 'x-auth-token': token }
+      });
       setPendingCaregivers(prev => prev.filter(c => c._id !== id));
     } catch (err) {
       console.error('Error updating caregiver status:', err);

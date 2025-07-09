@@ -21,9 +21,11 @@ export default function Schedule() {
   const [endTime, setEndTime] = useState('17:00');
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [hourlyRate, setHourlyRate] = useState('');
+  const [priceType, setPriceType] = useState('Fixed');
 
   useEffect(() => {
-    // Fetch current schedule
+    // Fetch current schedule and pricing
     const fetchSchedule = async () => {
       try {
         const res = await axios.get('http://localhost:5000/api/caregivers/profile', {
@@ -36,6 +38,10 @@ export default function Schedule() {
             setEndTime(res.data.availability.timeSlots[0].endTime || '17:00');
           }
         }
+        if (res.data.hourlyRate !== undefined && res.data.hourlyRate !== null) {
+          setHourlyRate(res.data.hourlyRate.toString());
+        }
+        if (res.data.priceType) setPriceType(res.data.priceType);
       } catch (err) {
         console.error('Error fetching schedule:', err);
       } finally {
@@ -54,7 +60,18 @@ export default function Schedule() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
+    
+    // Validate hourly rate
+    if (hourlyRate !== null && hourlyRate !== undefined && hourlyRate !== '') {
+      const rate = parseFloat(hourlyRate);
+      if (isNaN(rate) || rate < 0) {
+        setMessage('Please enter a valid hourly rate (must be a positive number).');
+        return;
+      }
+    }
+    
     try {
+      // Update schedule
       await axios.put(
         'http://localhost:5000/api/caregivers/schedule',
         {
@@ -65,10 +82,27 @@ export default function Schedule() {
           headers: { 'x-auth-token': token },
         }
       );
-      setMessage('Schedule saved successfully!');
+      // Update pricing - only if hourlyRate is provided and valid
+      if (hourlyRate !== null && hourlyRate !== undefined && hourlyRate !== '') {
+        const rate = parseFloat(hourlyRate);
+        if (!isNaN(rate) && rate >= 0) {
+          await axios.put(
+            'http://localhost:5000/api/caregivers/profile',
+            {
+              hourlyRate: rate,
+              priceType,
+            },
+            {
+              headers: { 'x-auth-token': token },
+            }
+          );
+        }
+      }
+      setMessage('Schedule and pricing saved successfully!');
     } catch (err) {
-      setMessage('Error saving schedule.');
-      console.error('Error saving schedule:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Error saving schedule or pricing.';
+      setMessage(errorMessage);
+      console.error('Error saving schedule or pricing:', err);
     }
   };
 
@@ -109,6 +143,26 @@ export default function Schedule() {
             className="border p-1 rounded"
           />
         </div>
+        <div className="flex gap-4 items-center">
+          <label className="font-medium">Hourly Rate (Ksh):</label>
+          <input
+            type="number"
+            value={hourlyRate}
+            onChange={(e) => setHourlyRate(e.target.value)}
+            className="border p-1 rounded"
+            min="0"
+            required
+          />
+          <label className="font-medium">Price Type:</label>
+          <select
+            value={priceType}
+            onChange={(e) => setPriceType(e.target.value)}
+            className="border p-1 rounded"
+          >
+            <option value="Fixed">Fixed</option>
+            <option value="Negotiable">Negotiable</option>
+          </select>
+        </div>
         <button
           type="submit"
           className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-semibold"
@@ -139,6 +193,11 @@ export default function Schedule() {
             ))}
           </ul>
         )}
+        <div className="mt-4">
+          <h4 className="font-semibold">Current Pricing:</h4>
+          <p>Hourly Rate: <span className="font-bold">Ksh {hourlyRate || 'N/A'}</span></p>
+          <p>Price Type: <span className="font-bold">{priceType || 'N/A'}</span></p>
+        </div>
       </div>
     </div>
   );
